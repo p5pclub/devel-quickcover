@@ -11,12 +11,20 @@ static void add_line(const char* file, int line) {
 
 static Perl_ppaddr_t ons_orig = 0;
 
-static OP* ons_ccov(pTHX) {
-  OP* orig = ons_orig(my_perl);
+static OP* ons_qc(pTHX) {
+  /* Restore original PP function for speed since we already tracked this location. */
+  PL_op->op_ppaddr = ons_orig;
+
+  /* Call original PP function */
+  OP* ret = ons_orig(my_perl);
+
+  /* Now do our own nefarious tracking... */
   const char* file = CopFILE(PL_curcop);
   const line_t line = CopLINE(PL_curcop);
   add_line(file, line);
-  return orig;
+
+  /* Return whatever we got from original PP function */
+  return ret;
 }
 
 static void term(pTHX, void* arg) {
@@ -29,7 +37,7 @@ static void init(pTHX) {
   ons_orig = PL_ppaddr[OP_NEXTSTATE];
   warn("current op is [%p]\n", ons_orig);
 
-  PL_ppaddr[OP_NEXTSTATE] = ons_ccov;
+  PL_ppaddr[OP_NEXTSTATE] = ons_qc;
   warn("op changed to [%p]\n", ons_qc);
 
   Perl_call_atexit(aTHX, term, 0);
