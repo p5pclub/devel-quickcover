@@ -5,7 +5,7 @@
 #include "ppport.h"
 
 static void add_line(const char* file, int line) {
-  fprintf(stderr, "@@@ add_line [%s] [%d]\n", file, line);
+  warn("@@@ add_line [%s] [%d]\n", file, line);
 }
 
 
@@ -20,20 +20,20 @@ static OP* ons_ccov(pTHX) {
 }
 
 static void term(pTHX, void* arg) {
-  fprintf(stderr, "cleaning up\n");
+  warn("cleaning up\n");
 }
 
 static void init(pTHX) {
-  fprintf(stderr, "initialising\n");
+  warn("initialising\n");
 
   ons_orig = PL_ppaddr[OP_NEXTSTATE];
-  fprintf(stderr, "current op is [%p]\n", ons_orig);
+  warn("current op is [%p]\n", ons_orig);
 
   PL_ppaddr[OP_NEXTSTATE] = ons_ccov;
-  fprintf(stderr, "op changed to [%p]\n", ons_ccov);
+  warn("op changed to [%p]\n", ons_qc);
 
   Perl_call_atexit(aTHX, term, 0);
-  fprintf(stderr, "registered cleanup [%p] at_exit\n", term);
+  warn("registered cleanup [%p] at_exit\n", term);
 }
 
 
@@ -48,6 +48,6 @@ import(SV* pclass, ... )
 
   CODE:
     const char* cclass = SvPV_nolen(pclass);
-    fprintf(stderr, "@@@ import() for [%s]\n", cclass);
+    warn("@@@ import() for [%s]\n", cclass);
 
     init(aTHX);
