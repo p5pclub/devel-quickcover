@@ -3,9 +3,13 @@
 #include "perl.h"
 #include "XSUB.h"
 #include "ppport.h"
+#include "cover.h"
+
+static CoverList* cover = 0;
 
 static void add_line(const char* file, int line) {
-  warn("@@@ add_line [%s] [%d]\n", file, line);
+  /* warn("@@@ add_line [%s] [%d]\n", file, line); */
+  cover_add(cover, file, line);
 }
 
 
@@ -28,20 +32,30 @@ static OP* ons_qc(pTHX) {
 }
 
 static void term(pTHX, void* arg) {
-  warn("cleaning up\n");
+  /* warn("cleaning up\n"); */
+
+  /* warn("dumping cover [%p]\n", cover); */
+  cover_dump(cover, stderr);
+
+  /* warn("deleting cover [%p]\n", cover); */
+  cover_destroy(cover);
+  cover = 0;
 }
 
 static void init(pTHX) {
-  warn("initialising\n");
+  /* warn("initialising\n"); */
+
+  cover = cover_create();
+  /* warn("created cover [%p]\n", cover); */
 
   ons_orig = PL_ppaddr[OP_NEXTSTATE];
-  warn("current op is [%p]\n", ons_orig);
+  /* warn("current op is [%p]\n", ons_orig); */
 
   PL_ppaddr[OP_NEXTSTATE] = ons_qc;
-  warn("op changed to [%p]\n", ons_qc);
+  /* warn("op changed to [%p]\n", ons_qc); */
 
   Perl_call_atexit(aTHX, term, 0);
-  warn("registered cleanup [%p] at_exit\n", term);
+  /* warn("registered cleanup [%p] at_exit\n", term); */
 }
 
 
@@ -55,7 +69,7 @@ import(SV* pclass, ... )
   PREINIT:
 
   CODE:
-    const char* cclass = SvPV_nolen(pclass);
-    warn("@@@ import() for [%s]\n", cclass);
+    /* const char* cclass = SvPV_nolen(pclass); */
+    /* warn("@@@ import() for [%s]\n", cclass); */
 
     init(aTHX);
