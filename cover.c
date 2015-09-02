@@ -3,7 +3,7 @@
 #include <string.h>
 #include "cover.h"
 
-#define COVER_INITIAL_SIZE 1
+#define COVER_INITIAL_SIZE 8
 
 #define BIT_TURN_ON(data, bit)   data[bit/CHAR_BIT] |=  (1 << (bit%CHAR_BIT))
 #define BIT_TURN_OFF(data, bit)  data[bit/CHAR_BIT] &= ~(1 << (bit%CHAR_BIT))
@@ -47,6 +47,7 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
     cn->alen = cn->ulen = 0;
     cn->next = cover->head;
     cover->head = cn;
+    ++cover->size;
     // fprintf(stderr, "Adding set for [%s]\n", cn->file);
   }
   cover_set(cn, line);
@@ -54,8 +55,10 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
 }
 
 void cover_dump(CoverList* cover, FILE* fp) {
-  for (CoverNode* cn = cover->head; cn != 0; cn = cn->next) {
-    fprintf(fp, "Quick coverage for file [%s]:\n", cn->file);
+  fprintf(fp, "== Dumping coverage for %d files\n", cover->size);
+  int num = 1;
+  for (CoverNode* cn = cover->head; cn != 0; ++num, cn = cn->next) {
+    fprintf(fp, "Quick coverage for file #%d - [%s]:\n", num, cn->file);
     for (int j = 0; j < cn->ulen; ++j) {
       if (BIT_IS_ON(cn->lines, j)) {
         fprintf(fp, "  %d\n", j+1);
