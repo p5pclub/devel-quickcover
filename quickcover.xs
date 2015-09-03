@@ -3,7 +3,12 @@
 #include "perl.h"
 #include "XSUB.h"
 #include "ppport.h"
+
+#include <stdio.h>
+#include <time.h>
 #include "cover.h"
+
+#define QC_PREFIX "QC"
 
 static CoverList* cover = 0;
 
@@ -35,7 +40,23 @@ static void term(pTHX, void* arg) {
   /* warn("cleaning up\n"); */
 
   /* warn("dumping cover [%p]\n", cover); */
-  cover_dump(cover, stderr);
+  time_t t;
+  time(&t);
+  struct tm* tm = localtime(&t);
+
+  char name[256];
+  sprintf(name, "%s_%04d%02d%02d_%02d%02d%02d_%ld.txt",
+          QC_PREFIX,
+          tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+          tm->tm_hour, tm->tm_min, tm->tm_sec,
+          (long) getpid());
+  FILE* fp = fopen(name, "w");
+  if (!fp) {
+    warn("Could not create dump file [%s]", name);
+  } else {
+    cover_dump(cover, fp, tm);
+    fclose(fp);
+  }
 
   /* warn("deleting cover [%p]\n", cover); */
   cover_destroy(cover);

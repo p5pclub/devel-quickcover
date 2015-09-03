@@ -1,6 +1,8 @@
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "cover.h"
 
 #define COVER_INITIAL_SIZE 8
@@ -25,7 +27,7 @@ void cover_destroy(CoverList* cover) {
 
   for (CoverNode* cn = cover->head; cn != 0; ) {
     CoverNode* p = cn;
-    // fprintf(stderr, "Destroying set for [%s], %d/%d elements\n", cn->file, cn->ulen, cn->alen*CHAR_BIT);
+    // fprintf(stderr, "Destroying set for [%s], %d/%d elements\n", cn->file, cn->bmax, cn->alen*CHAR_BIT);
     cn = cn->next;
     free(p->file);
     free(p->lines);
@@ -42,9 +44,10 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   }
   if (cn == 0) {
     cn = (CoverNode*) malloc(sizeof(CoverNode));
+    // TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc.
     cn->file = strdup(file);
     cn->lines = 0;
-    cn->alen = cn->ulen = 0;
+    cn->alen = cn->ulen = cn->bmax = 0;
     cn->next = cover->head;
     cover->head = cn;
     ++cover->size;
@@ -54,14 +57,27 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   return cn;
 }
 
-void cover_dump(CoverList* cover, FILE* fp) {
-  fprintf(fp, "== Dumping coverage for %d files\n", cover->size);
-  int num = 1;
-  for (CoverNode* cn = cover->head; cn != 0; ++num, cn = cn->next) {
-    fprintf(fp, "Quick coverage for file #%d - [%s]:\n", num, cn->file);
-    for (int j = 0; j < cn->ulen; ++j) {
+void cover_dump(CoverList* cover, FILE* fp, struct tm* tm) {
+  if (tm == 0) {
+    time_t t;
+    time(&t);
+    tm = localtime(&t);
+  }
+  fprintf(fp, "# These are comments. Each line block has the following fields:\n");
+  fprintf(fp, "#\n");
+  fprintf(fp, "# 0 number_of_files year month day hour minute second\n");
+  fprintf(fp, "# 1 number_of_lines file_name\n");
+  fprintf(fp, "# 2 line_covered\n");
+  fprintf(fp, "# --------------\n");
+  fprintf(fp, "0 %d %d %d %d %d %d %d\n",
+          cover->size,
+          tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+          tm->tm_hour, tm->tm_min, tm->tm_sec);
+  for (CoverNode* cn = cover->head; cn != 0; cn = cn->next) {
+    fprintf(fp, "1 %d %s\n", cn->ulen, cn->file);
+    for (int j = 0; j < cn->bmax; ++j) {
       if (BIT_IS_ON(cn->lines, j)) {
-        fprintf(fp, "  %d\n", j+1);
+        fprintf(fp, "2 %d\n", j+1);
       }
     }
   }
@@ -69,8 +85,8 @@ void cover_dump(CoverList* cover, FILE* fp) {
 
 static void cover_set(CoverNode* cn, int line) {
   // fprintf(stderr, "Adding line %d for [%s]\n", line, cn->file);
-  if (cn->ulen < line) {
-    cn->ulen = line;
+  if (cn->bmax < line) {
+    cn->bmax = line;
   }
 
   --line; // store line numbers zero-based
@@ -85,5 +101,8 @@ static void cover_set(CoverNode* cn, int line) {
     memset(cn->lines + cn->alen, 0, size - cn->alen);
     cn->alen = size;
   }
-  BIT_TURN_ON(cn->lines, line);
+  if (! BIT_IS_ON(cn->lines, line)) {
+    ++cn->ulen;
+    BIT_TURN_ON(cn->lines, line);
+  }
 }

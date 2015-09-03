@@ -7,6 +7,7 @@ typedef struct CoverNode {
   char* file;
   unsigned char* lines;
   unsigned short alen;
+  unsigned short bmax;
   unsigned short ulen;
   struct CoverNode* next;
 } CoverNode;
@@ -19,6 +20,6 @@ typedef struct CoverList {
 CoverList* cover_create(void);
 void cover_destroy(CoverList* cover);
 CoverNode* cover_add(CoverList* cover, const char* file, int line);
-void cover_dump(CoverList* cover, FILE* fp);
+void cover_dump(CoverList* cover, FILE* fp, struct tm* tm);
 
 #endif
