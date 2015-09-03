@@ -1,25 +1,46 @@
 #ifndef COVER_H_
 #define COVER_H_
 
+/*
+ * Handle a list of file names, and for each of them the set of lines in that
+ * file that were actually executed.
+ */
+
+// Needed for FILE declaration.
 #include <stdio.h>
 
+/*
+ * We will have one of these per file, stored in a singly linked list.
+ */
 typedef struct CoverNode {
-  char* file;
-  unsigned char* lines;
-  unsigned short alen;
-  unsigned short bmax;
-  unsigned short ulen;
-  struct CoverNode* next;
+  char* file;                 // file name
+  unsigned char* lines;       // bit set with the "covered lines"
+  unsigned short alen;        // current length of lines array
+  unsigned short bmax;        // value of largest bit (line) seen so far
+  unsigned short ulen;        // position of block in lines with the highest bit (line)
+  struct CoverNode* next;     // next element in list
 } CoverNode;
 
+/*
+ * A placeholder for the linked list with file coverage information.
+ */
 typedef struct CoverList {
-  CoverNode* head;
-  unsigned int size;
+  CoverNode* head;            // head of file list
+  unsigned int size;          // current size of list
 } CoverList;
 
 CoverList* cover_create(void);
 void cover_destroy(CoverList* cover);
+
+/*
+ * Add a file:line to the CoverList; will create file CoverNode if necessary.
+ */
 CoverNode* cover_add(CoverList* cover, const char* file, int line);
-void cover_dump(CoverList* cover, FILE* fp, struct tm* tm);
+
+/*
+ * Dump all data to a given file stream; if stamp is given, use it as the
+ * "current timestamp" for the dump.
+ */
+void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp);
 
 #endif

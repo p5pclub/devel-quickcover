@@ -5,19 +5,22 @@
 #include <time.h>
 #include "cover.h"
 
+// How big will the initial bit set allocation be; 8 * CHAR_BIT = 64 bits.
 #define COVER_INITIAL_SIZE 8
 
+// Handle an array of unsigned char as a bit set.
 #define BIT_TURN_ON(data, bit)   data[bit/CHAR_BIT] |=  (1 << (bit%CHAR_BIT))
 #define BIT_TURN_OFF(data, bit)  data[bit/CHAR_BIT] &= ~(1 << (bit%CHAR_BIT))
 #define BIT_IS_ON(data, bit)    (data[bit/CHAR_BIT] &   (1 << (bit%CHAR_BIT)))
 
-static void cover_set(CoverNode* cn, int line);
+// Add a line to a given CoverNode; grow its bit set if necessary.
+static void cover_set(CoverNode* node, int line);
 
 CoverList* cover_create(void) {
-  CoverList* cl = (CoverList*) malloc(sizeof(CoverList));
-  cl->head = 0;
-  cl->size = 0;
-  return cl;
+  CoverList* cover = (CoverList*) malloc(sizeof(CoverList));
+  cover->head = 0;
+  cover->size = 0;
+  return cover;
 }
 
 void cover_destroy(CoverList* cover) {
@@ -25,37 +28,37 @@ void cover_destroy(CoverList* cover) {
     return;
   }
 
-  for (CoverNode* cn = cover->head; cn != 0; ) {
-    CoverNode* p = cn;
-    // fprintf(stderr, "Destroying set for [%s], %d/%d elements\n", cn->file, cn->bmax, cn->alen*CHAR_BIT);
-    cn = cn->next;
-    free(p->file);
-    free(p->lines);
-    free(p);
+  for (CoverNode* node = cover->head; node != 0; ) {
+    CoverNode* tmp = node;
+    // fprintf(stderr, "Destroying set for [%s], %d/%d elements\n", node->file, node->bmax, node->alen*CHAR_BIT);
+    node = node->next;
+    free(tmp->file);
+    free(tmp->lines);
+    free(tmp);
   }
   free(cover);
 }
 
 CoverNode* cover_add(CoverList* cover, const char* file, int line) {
-  CoverNode* cn = 0;
-  for (cn = cover->head; cn != 0; cn = cn->next) {
-    if (strcmp(cn->file, file) == 0) {
+  CoverNode* node = 0;
+  for (node = cover->head; node != 0; node = node->next) {
+    if (strcmp(node->file, file) == 0) {
       break;
     }
   }
-  if (cn == 0) {
-    cn = (CoverNode*) malloc(sizeof(CoverNode));
+  if (node == 0) {
+    node = (CoverNode*) malloc(sizeof(CoverNode));
     // TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc.
-    cn->file = strdup(file);
-    cn->lines = 0;
-    cn->alen = cn->ulen = cn->bmax = 0;
-    cn->next = cover->head;
-    cover->head = cn;
+    node->file = strdup(file);
+    node->lines = 0;
+    node->alen = node->ulen = node->bmax = 0;
+    node->next = cover->head;
+    cover->head = node;
     ++cover->size;
-    // fprintf(stderr, "Adding set for [%s]\n", cn->file);
+    // fprintf(stderr, "Adding set for [%s]\n", node->file);
   }
-  cover_set(cn, line);
-  return cn;
+  cover_set(node, line);
+  return node;
 }
 
 void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
@@ -84,26 +87,42 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
   }
 }
 
-static void cover_set(CoverNode* cn, int line) {
-  // fprintf(stderr, "Adding line %d for [%s]\n", line, cn->file);
-  if (cn->bmax < line) {
-    cn->bmax = line;
+static void cover_set(CoverNode* node, int line) {
+  // fprintf(stderr, "Adding line %d for [%s]\n", line, node->file);
+
+  // keep track of largest line seen so far
+  if (node->bmax < line) {
+    node->bmax = line;
   }
 
   --line; // store line numbers zero-based
+
+  // maybe we need to grow the bit set?
   int needed = line / CHAR_BIT + 1;
-  if (cn->alen < needed) {
-    int size = cn->alen ? cn->alen : COVER_INITIAL_SIZE;
+  if (node->alen < needed) {
+    // start at COVER_INITIAL_SIZE, then duplicate the size, until we have
+    // enough room
+    int size = node->alen ? node->alen : COVER_INITIAL_SIZE;
     while (size < needed) {
       size *= 2;
     }
-    // fprintf(stderr, "Growing map for [%s] from %d to %d\n", cn->file, cn->alen, size);
-    cn->lines = realloc(cn->lines, size);
-    memset(cn->lines + cn->alen, 0, size - cn->alen);
-    cn->alen = size;
+
+    // fprintf(stderr, "Growing map for [%s] from %d to %d\n", node->file, node->alen, size);
+
+    // realloc will grow the data and keep all current values...
+    node->lines = realloc(node->lines, size);
+
+    // ... but it will not initialise the new space to 0.
+    memset(node->lines + node->alen, 0, size - node->alen);
+
+    // we are bigger now
+    node->alen = size;
   }
-  if (! BIT_IS_ON(cn->lines, line)) {
-    ++cn->ulen;
-    BIT_TURN_ON(cn->lines, line);
+
+  // if the line was not already register, do so and keep track of how many
+  // lines we have seen so far
+  if (! BIT_IS_ON(node->lines, line)) {
+    ++node->ulen;
+    BIT_TURN_ON(node->lines, line);
   }
 }
