@@ -58,11 +58,11 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   return cn;
 }
 
-void cover_dump(CoverList* cover, FILE* fp, struct tm* tm) {
-  if (tm == 0) {
-    time_t t;
-    time(&t);
-    tm = localtime(&t);
+void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
+  struct tm now;
+  if (stamp == 0) {
+    time_t t = time(0);
+    stamp = localtime_r(&t, &now);
   }
   fprintf(fp, "# These are comments. Each line block has the following fields:\n");
   fprintf(fp, "#\n");
@@ -72,12 +72,12 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* tm) {
   fprintf(fp, "# --------------\n");
   fprintf(fp, "0 %d %d %d %d %d %d %d\n",
           cover->size,
-          tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-          tm->tm_hour, tm->tm_min, tm->tm_sec);
-  for (CoverNode* cn = cover->head; cn != 0; cn = cn->next) {
-    fprintf(fp, "1 %d %s\n", cn->ulen, cn->file);
-    for (int j = 0; j < cn->bmax; ++j) {
-      if (BIT_IS_ON(cn->lines, j)) {
+          stamp->tm_year + 1900, stamp->tm_mon + 1, stamp->tm_mday,
+          stamp->tm_hour, stamp->tm_min, stamp->tm_sec);
+  for (CoverNode* node = cover->head; node != 0; node = node->next) {
+    fprintf(fp, "1 %d %s\n", node->ulen, node->file);
+    for (int j = 0; j < node->bmax; ++j) {
+      if (BIT_IS_ON(node->lines, j)) {
         fprintf(fp, "2 %d\n", j+1);
       }
     }

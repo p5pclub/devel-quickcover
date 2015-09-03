@@ -40,21 +40,21 @@ static void term(pTHX, void* arg) {
   /* warn("cleaning up\n"); */
 
   /* warn("dumping cover [%p]\n", cover); */
-  time_t t;
-  time(&t);
-  struct tm* tm = localtime(&t);
+  time_t t = time(0);
+  struct tm now;
+  localtime_r(&t, &now);
 
   char name[256];
   sprintf(name, "%s_%04d%02d%02d_%02d%02d%02d_%ld.txt",
           QC_PREFIX,
-          tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-          tm->tm_hour, tm->tm_min, tm->tm_sec,
+          now.tm_year + 1900, now.tm_mon + 1, now.tm_mday,
+          now.tm_hour, now.tm_min, now.tm_sec,
           (long) getpid());
   FILE* fp = fopen(name, "w");
   if (!fp) {
     warn("Could not create dump file [%s]", name);
   } else {
-    cover_dump(cover, fp, tm);
+    cover_dump(cover, fp, &now);
     fclose(fp);
   }
 
