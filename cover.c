@@ -33,6 +33,7 @@ void cover_destroy(CoverList* cover) {
     free(p->lines);
     free(p);
   }
+  free(cover);
 }
 
 CoverNode* cover_add(CoverList* cover, const char* file, int line) {
