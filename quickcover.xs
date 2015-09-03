@@ -86,7 +86,7 @@ PROTOTYPES: DISABLE
 #################################################################
 
 void
-import(SV* pclass, ... )
+import(SV*, ... )
   PREINIT:
 
   CODE:
