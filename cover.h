@@ -17,7 +17,7 @@ typedef struct CoverNode {
   unsigned char* lines;       // bit set with the "covered lines"
   unsigned short alen;        // current length of lines array
   unsigned short bmax;        // value of largest bit (line) seen so far
-  unsigned short ulen;        // position of block in lines with the highest bit (line)
+  unsigned short bcnt;        // number of different bits (lines) seen so far
   struct CoverNode* next;     // next element in list
 } CoverNode;
 

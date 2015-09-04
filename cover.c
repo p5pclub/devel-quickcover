@@ -51,7 +51,7 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
     // TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc.
     node->file = strdup(file);
     node->lines = 0;
-    node->alen = node->ulen = node->bmax = 0;
+    node->alen = node->bcnt = node->bmax = 0;
     node->next = cover->head;
     cover->head = node;
     ++cover->size;
@@ -78,7 +78,7 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
           stamp->tm_year + 1900, stamp->tm_mon + 1, stamp->tm_mday,
           stamp->tm_hour, stamp->tm_min, stamp->tm_sec);
   for (CoverNode* node = cover->head; node != 0; node = node->next) {
-    fprintf(fp, "1 %d %s\n", node->ulen, node->file);
+    fprintf(fp, "1 %d %s\n", node->bcnt, node->file);
     for (int j = 0; j < node->bmax; ++j) {
       if (BIT_IS_ON(node->lines, j)) {
         fprintf(fp, "2 %d\n", j+1);
@@ -122,7 +122,7 @@ static void cover_set(CoverNode* node, int line) {
   // if the line was not already register, do so and keep track of how many
   // lines we have seen so far
   if (! BIT_IS_ON(node->lines, line)) {
-    ++node->ulen;
+    ++node->bcnt;
     BIT_TURN_ON(node->lines, line);
   }
 }
