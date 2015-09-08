@@ -11,13 +11,6 @@
 #define QC_PREFIX "QC"
 
 static CoverList* cover = 0;
-
-static void add_line(const char* file, int line) {
-  /* warn("@@@ add_line [%s] [%d]\n", file, line); */
-  cover_add(cover, file, line);
-}
-
-
 static Perl_ppaddr_t ons_orig = 0;
 
 static OP* ons_qc(pTHX) {
@@ -30,7 +23,7 @@ static OP* ons_qc(pTHX) {
   /* Now do our own nefarious tracking... */
   const char* file = CopFILE(PL_curcop);
   const line_t line = CopLINE(PL_curcop);
-  add_line(file, line);
+  cover_add(cover, file, line);
 
   /* Return whatever we got from original PP function */
   return ret;
