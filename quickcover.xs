@@ -13,7 +13,7 @@
 static CoverList* cover = 0;
 static Perl_ppaddr_t ons_orig = 0;
 
-static OP* ons_qc(pTHX) {
+static OP* ons_quickcover(pTHX) {
   /* Restore original PP function for speed since we already tracked this location. */
   PL_op->op_ppaddr = ons_orig;
 
@@ -65,8 +65,8 @@ static void init(pTHX) {
   ons_orig = PL_ppaddr[OP_NEXTSTATE];
   /* warn("current op is [%p]\n", ons_orig); */
 
-  PL_ppaddr[OP_NEXTSTATE] = ons_qc;
-  /* warn("op changed to [%p]\n", ons_qc); */
+  PL_ppaddr[OP_NEXTSTATE] = ons_quickcover;
+  /* warn("op changed to [%p]\n", ons_quickcover); */
 
   Perl_call_atexit(aTHX, term, 0);
   /* warn("registered cleanup [%p] at_exit\n", term); */
