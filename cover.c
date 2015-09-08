@@ -5,8 +5,8 @@
 #include <time.h>
 #include "cover.h"
 
-// How big will the initial bit set allocation be; 8 * CHAR_BIT = 64 bits.
-#define COVER_INITIAL_SIZE 8
+// How big will the initial bit set allocation be.
+#define COVER_INITIAL_SIZE 8   // 8 * CHAR_BIT = 64 bits (lines)
 
 // Handle an array of unsigned char as a bit set.
 #define BIT_TURN_ON(data, bit)   data[bit/CHAR_BIT] |=  (1 << (bit%CHAR_BIT))
@@ -131,7 +131,7 @@ static void cover_node_set_line(CoverNode* node, int line) {
     node->alen = size;
   }
 
-  // if the line was not already register, do so and keep track of how many
+  // if the line was not already registered, do so and keep track of how many
   // lines we have seen so far
   if (! BIT_IS_ON(node->lines, line)) {
     ++node->bcnt;

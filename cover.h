@@ -29,11 +29,19 @@ typedef struct CoverList {
   unsigned int size;          // current size of list
 } CoverList;
 
+/*
+ * Create a CoverList object.
+ */
 CoverList* cover_create(void);
+
+/*
+ * Destroy a CoverList object.
+ */
 void cover_destroy(CoverList* cover);
 
 /*
- * Add a file:line to the CoverList; will create file CoverNode if necessary.
+ * Add a file:line to the CoverList; will create CoverNode for file, if it
+ * doesn't already exist.
  */
 CoverNode* cover_add(CoverList* cover, const char* file, int line);
 
