@@ -19,7 +19,7 @@
 #define COVER_TAG_LINE_INFO 2
 
 // Add a line to a given CoverNode; grow its bit set if necessary.
-static void cover_set(CoverNode* node, int line);
+static void cover_node_set_line(CoverNode* node, int line);
 
 CoverList* cover_create(void) {
   CoverList* cover = (CoverList*) malloc(sizeof(CoverList));
@@ -62,7 +62,7 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
     ++cover->size;
     // fprintf(stderr, "Adding set for [%s]\n", node->file);
   }
-  cover_set(node, line);
+  cover_node_set_line(node, line);
   return node;
 }
 
@@ -99,7 +99,7 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
   }
 }
 
-static void cover_set(CoverNode* node, int line) {
+static void cover_node_set_line(CoverNode* node, int line) {
   // fprintf(stderr, "Adding line %d for [%s]\n", line, node->file);
 
   // keep track of largest line seen so far
