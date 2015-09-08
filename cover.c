@@ -13,6 +13,11 @@
 #define BIT_TURN_OFF(data, bit)  data[bit/CHAR_BIT] &= ~(1 << (bit%CHAR_BIT))
 #define BIT_IS_ON(data, bit)    (data[bit/CHAR_BIT] &   (1 << (bit%CHAR_BIT)))
 
+// Line tags in generated dump.
+#define COVER_TAG_SUMMARY   0
+#define COVER_TAG_FILE_INFO 1
+#define COVER_TAG_LINE_INFO 2
+
 // Add a line to a given CoverNode; grow its bit set if necessary.
 static void cover_set(CoverNode* node, int line);
 
@@ -73,15 +78,22 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
   fprintf(fp, "# 1 number_of_lines file_name\n");
   fprintf(fp, "# 2 line_covered\n");
   fprintf(fp, "# --------------\n");
-  fprintf(fp, "0 %d %d %d %d %d %d %d\n",
+  fprintf(fp, "%d %d %d %d %d %d %d %d\n",
+          COVER_TAG_SUMMARY,
           cover->size,
           stamp->tm_year + 1900, stamp->tm_mon + 1, stamp->tm_mday,
           stamp->tm_hour, stamp->tm_min, stamp->tm_sec);
   for (CoverNode* node = cover->head; node != 0; node = node->next) {
-    fprintf(fp, "1 %d %s\n", node->bcnt, node->file);
+    fprintf(fp, "%d %d %s\n",
+            COVER_TAG_FILE_INFO,
+            node->bcnt,
+            node->file);
     for (int j = 0; j < node->bmax; ++j) {
       if (BIT_IS_ON(node->lines, j)) {
-        fprintf(fp, "2 %d\n", j+1);
+        // TODO: maybe output more than one line in each line with type 2?
+        fprintf(fp, "%d %d\n",
+                COVER_TAG_LINE_INFO,
+                j+1);
       }
     }
   }
