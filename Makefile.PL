@@ -26,6 +26,19 @@ sub cflags {
     my @cflags = split /\n/, $cflags;
 
     $self->{CCFLAGS} .= ' -Wall';
+    $self->{CCFLAGS} .= ' -std=c89';
+    $self->{CCFLAGS} .= ' -pedantic';
+
+    # These warnings are for code not allowed in C89, but fuck that; shut them up.
+    $self->{CCFLAGS} .= ' -Wno-comment';
+    $self->{CCFLAGS} .= ' -Wno-declaration-after-statement';
+    $self->{CCFLAGS} .= ' -Wno-c99-extensions';
+
+    # These warnings show up in internal XSUB code, so just shut them up.
+    $self->{CCFLAGS} .= ' -Wno-gnu-statement-expression';
+    $self->{CCFLAGS} .= ' -Wno-variadic-macros';
+    $self->{CCFLAGS} .= ' -Wno-long-long';
+
     foreach (@cflags) {
         $_ = "CCFLAGS = $self->{CCFLAGS}" if /^CCFLAGS/;
     }

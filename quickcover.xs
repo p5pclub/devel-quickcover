@@ -22,9 +22,7 @@ static OP* ons_quickcover(pTHX) {
   OP* ret = ons_orig(my_perl);
 
   /* Now do our own nefarious tracking... */
-  const char* file = CopFILE(PL_curcop);
-  const line_t line = CopLINE(PL_curcop);
-  cover_add(cover, file, line);
+  cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
 
   /* Return whatever we got from original PP function */
   return ret;
