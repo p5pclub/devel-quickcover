@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <time.h>
+#include "glog.h"
 #include "cover.h"
 
 #define QC_PREFIX "QC"
@@ -30,9 +31,9 @@ static OP* ons_quickcover(pTHX) {
 }
 
 static void term(pTHX, void* arg) {
-  /* warn("cleaning up\n"); */
+  GLOG(("cleaning up"));
 
-  /* warn("dumping cover [%p]\n", cover); */
+  GLOG(("dumping cover [%p]", cover));
   time_t t = time(0);
   struct tm now;
   localtime_r(&t, &now);
@@ -45,31 +46,31 @@ static void term(pTHX, void* arg) {
           (long) getpid());
   FILE* fp = fopen(name, "w");
   if (!fp) {
-    warn("Could not create dump file [%s]", name);
+    GLOG(("Could not create dump file [%s]", name));
   } else {
     cover_dump(cover, fp, &now);
     fclose(fp);
   }
 
-  /* warn("deleting cover [%p]\n", cover); */
+  GLOG(("deleting cover [%p]", cover));
   cover_destroy(cover);
   cover = 0;
 }
 
 static void init(pTHX) {
-  /* warn("initialising\n"); */
+  GLOG(("initialising"));
 
   cover = cover_create();
-  /* warn("created cover [%p]\n", cover); */
+  GLOG(("created cover [%p]", cover));
 
   ons_orig = PL_ppaddr[OP_NEXTSTATE];
-  /* warn("current op is [%p]\n", ons_orig); */
+  GLOG(("current op is [%p]", ons_orig));
 
   PL_ppaddr[OP_NEXTSTATE] = ons_quickcover;
-  /* warn("op changed to [%p]\n", ons_quickcover); */
+  GLOG(("op changed to [%p]", ons_quickcover));
 
   Perl_call_atexit(aTHX, term, 0);
-  /* warn("registered cleanup [%p] at_exit\n", term); */
+  GLOG(("registered cleanup [%p] at_exit", term));
 }
 
 
@@ -79,11 +80,11 @@ PROTOTYPES: DISABLE
 #################################################################
 
 void
-import(SV*, ... )
+import(SV* pclass)
   PREINIT:
 
   CODE:
-    /* const char* cclass = SvPV_nolen(pclass); */
-    /* warn("@@@ import() for [%s]\n", cclass); */
+    const char* cclass = SvPV_nolen(pclass);
+    GLOG(("@@@ import() for [%s]", cclass));
 
     init(aTHX);

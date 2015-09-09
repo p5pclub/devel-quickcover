@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "glog.h"
+#include "gmem.h"
 #include "cover.h"
 
 // How big will the initial bit set allocation be.
@@ -22,7 +24,8 @@
 static void cover_node_set_line(CoverNode* node, int line);
 
 CoverList* cover_create(void) {
-  CoverList* cover = (CoverList*) malloc(sizeof(CoverList));
+  CoverList* cover;
+  GMEM_NEW(cover, CoverList*, sizeof(CoverList));
   cover->head = 0;
   cover->size = 0;
   return cover;
@@ -35,13 +38,17 @@ void cover_destroy(CoverList* cover) {
 
   for (CoverNode* node = cover->head; node != 0; ) {
     CoverNode* tmp = node;
-    // fprintf(stderr, "Destroying set for [%s], %d/%d elements\n", node->file, node->bmax, node->alen*CHAR_BIT);
+    GLOG(("Destroying set for [%s], %d/%d elements", node->file, node->bcnt, node->alen*CHAR_BIT));
     node = node->next;
-    free(tmp->file);
-    free(tmp->lines);
-    free(tmp);
+    GLOG(("Destroying string [%s]", tmp->file));
+    GMEM_DELSTR(tmp->file, -1);
+    GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen));
+    GMEM_DELARR(tmp->lines, unsigned char*, tmp->alen, sizeof(unsigned char*));
+    GLOG(("Destroying node [%p]", tmp));
+    GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
   }
-  free(cover);
+  GLOG(("Destroying cover [%p]", cover));
+  GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
 CoverNode* cover_add(CoverList* cover, const char* file, int line) {
@@ -52,15 +59,16 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
     }
   }
   if (node == 0) {
-    node = (CoverNode*) malloc(sizeof(CoverNode));
+    GMEM_NEW(node, CoverNode*, sizeof(CoverNode));
     // TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc.
-    node->file = strdup(file);
+    int l = 0;
+    GMEM_NEWSTR(node->file, file, -1, l);
     node->lines = 0;
     node->alen = node->bcnt = node->bmax = 0;
     node->next = cover->head;
     cover->head = node;
     ++cover->size;
-    // fprintf(stderr, "Adding set for [%s]\n", node->file);
+    GLOG(("Adding set for [%s]", node->file));
   }
   cover_node_set_line(node, line);
   return node;
@@ -100,8 +108,6 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
 }
 
 static void cover_node_set_line(CoverNode* node, int line) {
-  // fprintf(stderr, "Adding line %d for [%s]\n", line, node->file);
-
   // keep track of largest line seen so far
   if (node->bmax < line) {
     node->bmax = line;
@@ -119,10 +125,10 @@ static void cover_node_set_line(CoverNode* node, int line) {
       size *= 2;
     }
 
-    // fprintf(stderr, "Growing map for [%s] from %d to %d\n", node->file, node->alen, size);
+    GLOG(("Growing map for [%s] from %d to %d", node->file, node->alen, size));
 
     // realloc will grow the data and keep all current values...
-    node->lines = realloc(node->lines, size);
+    GMEM_REALLOC(node->lines, unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
 
     // ... but it will not initialise the new space to 0.
     memset(node->lines + node->alen, 0, size - node->alen);
@@ -134,6 +140,7 @@ static void cover_node_set_line(CoverNode* node, int line) {
   // if the line was not already registered, do so and keep track of how many
   // lines we have seen so far
   if (! BIT_IS_ON(node->lines, line)) {
+    GLOG(("Adding line %d for [%s]", line, node->file));
     ++node->bcnt;
     BIT_TURN_ON(node->lines, line);
   }
