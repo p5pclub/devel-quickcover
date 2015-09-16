@@ -28,7 +28,7 @@ static OP* ons_quickcover(pTHX) {
   return ret;
 }
 
-static void term(pTHX, void* arg) {
+static void term(pTHX_ void* arg) {
   GLOG(("cleaning up"));
 
   GLOG(("dumping cover [%p]", cover));
@@ -67,7 +67,7 @@ static void init(pTHX) {
   PL_ppaddr[OP_NEXTSTATE] = ons_quickcover;
   GLOG(("op changed to [%p]", ons_quickcover));
 
-  Perl_call_atexit(aTHX, term, 0);
+  Perl_call_atexit(aTHX_ term, 0);
   GLOG(("registered cleanup [%p] at_exit", term));
 }
 
