@@ -19,7 +19,7 @@ static OP* ons_quickcover(pTHX) {
   PL_op->op_ppaddr = ons_orig;
 
   /* Call original PP function */
-  OP* ret = ons_orig(my_perl);
+  OP* ret = ons_orig(aTHX);
 
   /* Now do our own nefarious tracking... */
   cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
