@@ -12,6 +12,10 @@
 #define QC_DIRECTORY "/tmp"
 #define QC_PREFIX    "QC"
 
+#ifndef __GNUC__
+#  define  __attribute__(x)
+#endif
+
 static CoverList* cover = 0;
 static Perl_ppaddr_t ons_orig = 0;
 
@@ -98,9 +102,8 @@ PROTOTYPES: DISABLE
 void
 import(SV* pclass)
   PREINIT:
-
   CODE:
-    const char* cclass = SvPV_nolen(pclass);
+    __attribute__((unused)) const char* cclass = SvPV_nolen(pclass);
     GLOG(("@@@ import() for [%s]", cclass));
 
     init(aTHX);
