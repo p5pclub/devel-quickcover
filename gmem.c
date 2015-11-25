@@ -132,4 +132,4 @@ int gmem_strdel(const char* file,
   return len;
 }
 
-#endif // #if defined(GMEM_CHECK) && GMEM_CHECK >= 1
+#endif /* #if defined(GMEM_CHECK) && GMEM_CHECK >= 1 */
