@@ -12,6 +12,10 @@
 #define QC_DIRECTORY "/tmp"
 #define QC_PREFIX    "QC"
 
+#ifndef __GNUC__
+#  define  __attribute__(x)
+#endif
+
 static CoverList* cover = 0;
 static Perl_ppaddr_t ons_orig = 0;
 
@@ -61,7 +65,7 @@ static void term(pTHX_ void* arg) {
   sprintf(txt, "%s.txt", base);
   FILE* fp = fopen(tmp, "w");
   if (!fp) {
-    GLOG(("Could not create dump file [%s]", name));
+    GLOG(("Could not create dump file [%s]", tmp));
   } else {
     cover_dump(cover, fp, &now);
     fclose(fp);
@@ -98,9 +102,8 @@ PROTOTYPES: DISABLE
 void
 import(SV* pclass)
   PREINIT:
-
   CODE:
-    const char* cclass = SvPV_nolen(pclass);
+    __attribute__((unused)) const char* cclass = SvPV_nolen(pclass);
     GLOG(("@@@ import() for [%s]", cclass));
 
     init(aTHX);
