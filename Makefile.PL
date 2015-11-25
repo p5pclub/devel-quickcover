@@ -26,11 +26,8 @@ sub cflags {
     my @cflags = split /\n/, $cflags;
 
     $self->{CCFLAGS} .= ' -Wall';     # Flag all warnings
-    $self->{CCFLAGS} .= ' -std=c99';  # Compile according to C99 standard
-    $self->{CCFLAGS} .= ' -pedantic'; # Be pedantic about warnings - no GNU extensions
-
-    # These warnings show up in internal XSUB code, so just shut them up.
-    $self->{CCFLAGS} .= ' -Wno-gnu-statement-expression';
+    $self->{CCFLAGS} .= ' -std=c89';  # Compile according to C99 standard
+    # $self->{CCFLAGS} .= ' -pedantic'; # Be pedantic about warnings - no GNU extensions
 
     foreach (@cflags) {
         $_ = "CCFLAGS = $self->{CCFLAGS}" if /^CCFLAGS/;

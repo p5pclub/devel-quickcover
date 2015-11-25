@@ -6,27 +6,27 @@
  * file that were actually executed.
  */
 
-// Needed for FILE declaration.
+/* Needed for FILE declaration. */
 #include <stdio.h>
 
 /*
  * We will have one of these per file, stored in a singly linked list.
  */
 typedef struct CoverNode {
-  char* file;                 // file name
-  unsigned char* lines;       // bit set with the "covered lines"
-  unsigned short alen;        // current length of lines array
-  unsigned short bmax;        // value of largest bit (line) seen so far
-  unsigned short bcnt;        // number of different bits (lines) seen so far
-  struct CoverNode* next;     // next element in list
+  char* file;                 /* file name */
+  unsigned char* lines;       /* bit set with the "covered lines" */
+  unsigned short alen;        /* current length of lines array */
+  unsigned short bmax;        /* value of largest bit (line) seen so far */
+  unsigned short bcnt;        /* number of different bits (lines) seen so far */
+  struct CoverNode* next;     /* next element in list */
 } CoverNode;
 
 /*
  * A placeholder for the linked list with file coverage information.
  */
 typedef struct CoverList {
-  CoverNode* head;            // head of file list
-  unsigned int size;          // current size of list
+  CoverNode* head;            /* head of file list */
+  unsigned int size;          /* current size of list */
 } CoverList;
 
 /*

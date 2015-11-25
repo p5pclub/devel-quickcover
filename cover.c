@@ -7,20 +7,20 @@
 #include "gmem.h"
 #include "cover.h"
 
-// How big will the initial bit set allocation be.
-#define COVER_INITIAL_SIZE 8   // 8 * CHAR_BIT = 64 bits (lines)
+/* How big will the initial bit set allocation be. */
+#define COVER_INITIAL_SIZE 8   /* 8 * CHAR_BIT = 64 bits (lines) */
 
-// Handle an array of unsigned char as a bit set.
+/* Handle an array of unsigned char as a bit set. */
 #define BIT_TURN_ON(data, bit)   data[bit/CHAR_BIT] |=  (1 << (bit%CHAR_BIT))
 #define BIT_TURN_OFF(data, bit)  data[bit/CHAR_BIT] &= ~(1 << (bit%CHAR_BIT))
 #define BIT_IS_ON(data, bit)    (data[bit/CHAR_BIT] &   (1 << (bit%CHAR_BIT)))
 
-// Line tags in generated dump.
+/* Line tags in generated dump. */
 #define COVER_TAG_SUMMARY   0
 #define COVER_TAG_FILE_INFO 1
 #define COVER_TAG_LINE_INFO 2
 
-// Add a line to a given CoverNode; grow its bit set if necessary.
+/* Add a line to a given CoverNode; grow its bit set if necessary. */
 static void cover_node_set_line(CoverNode* node, int line);
 
 CoverList* cover_create(void) {
@@ -32,11 +32,13 @@ CoverList* cover_create(void) {
 }
 
 void cover_destroy(CoverList* cover) {
+  CoverNode* node = 0;
+
   if (!cover) {
     return;
   }
 
-  for (CoverNode* node = cover->head; node != 0; ) {
+  for (node = cover->head; node != 0; ) {
     CoverNode* tmp = node;
     GLOG(("Destroying set for [%s], %d/%d elements", node->file, node->bcnt, node->alen*CHAR_BIT));
     node = node->next;
@@ -60,7 +62,7 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   }
   if (node == 0) {
     GMEM_NEW(node, CoverNode*, sizeof(CoverNode));
-    // TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc.
+    /* TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc. */
     int l = 0;
     GMEM_NEWSTR(node->file, file, -1, l);
     node->lines = 0;
@@ -76,6 +78,8 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
 
 void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
   struct tm now;
+  CoverNode* node = 0;
+
   if (stamp == 0) {
     time_t t = time(0);
     stamp = localtime_r(&t, &now);
@@ -91,14 +95,16 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
           cover->size,
           stamp->tm_year + 1900, stamp->tm_mon + 1, stamp->tm_mday,
           stamp->tm_hour, stamp->tm_min, stamp->tm_sec);
-  for (CoverNode* node = cover->head; node != 0; node = node->next) {
+  for (node = cover->head; node != 0; node = node->next) {
+    int j = 0;
+
     fprintf(fp, "%d %d %s\n",
             COVER_TAG_FILE_INFO,
             node->bcnt,
             node->file);
-    for (int j = 0; j < node->bmax; ++j) {
+    for (j = 0; j < node->bmax; ++j) {
       if (BIT_IS_ON(node->lines, j)) {
-        // TODO: maybe output more than one line in each line with type 2?
+        /* TODO: maybe output more than one line in each line with type 2? */
         fprintf(fp, "%d %d\n",
                 COVER_TAG_LINE_INFO,
                 j+1);
@@ -108,18 +114,18 @@ void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
 }
 
 static void cover_node_set_line(CoverNode* node, int line) {
-  // keep track of largest line seen so far
+  /* keep track of largest line seen so far */
   if (node->bmax < line) {
     node->bmax = line;
   }
 
-  --line; // store line numbers zero-based
+  --line; /* store line numbers zero-based */
 
-  // maybe we need to grow the bit set?
+  /* maybe we need to grow the bit set? */
   int needed = line / CHAR_BIT + 1;
   if (node->alen < needed) {
-    // start at COVER_INITIAL_SIZE, then duplicate the size, until we have
-    // enough room
+    /* start at COVER_INITIAL_SIZE, then duplicate the size, until we have */
+    /* enough room */
     int size = node->alen ? node->alen : COVER_INITIAL_SIZE;
     while (size < needed) {
       size *= 2;
@@ -127,18 +133,18 @@ static void cover_node_set_line(CoverNode* node, int line) {
 
     GLOG(("Growing map for [%s] from %d to %d", node->file, node->alen, size));
 
-    // realloc will grow the data and keep all current values...
+    /* realloc will grow the data and keep all current values... */
     GMEM_REALLOC(node->lines, unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
 
-    // ... but it will not initialise the new space to 0.
+    /* ... but it will not initialise the new space to 0. */
     memset(node->lines + node->alen, 0, size - node->alen);
 
-    // we are bigger now
+    /* we are bigger now */
     node->alen = size;
   }
 
-  // if the line was not already registered, do so and keep track of how many
-  // lines we have seen so far
+  /* if the line was not already registered, do so and keep track of how many */
+  /* lines we have seen so far */
   if (! BIT_IS_ON(node->lines, line)) {
     GLOG(("Adding line %d for [%s]", line, node->file));
     ++node->bcnt;

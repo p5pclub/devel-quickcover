@@ -141,6 +141,6 @@ int gmem_strdel(const char* file,
                 char** str,
                 int len);
 
-#endif // #if !defined(GMEM_CHECK) || GMEM_CHECK < 1
+#endif /* #if !defined(GMEM_CHECK) || GMEM_CHECK < 1 */
 
 #endif
