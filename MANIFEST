@@ -1,0 +1,15 @@
+quickcover.xs
+cover.c
+cover.h
+glog.c
+glog.h
+gmem.c
+gmem.h
+lib/Devel/QuickCover.pm
+ppport.h
+
+Changes
+LICENSE
+Makefile.PL
+MANIFEST			This list of files
+README.md
