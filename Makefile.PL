@@ -2,8 +2,8 @@ use 5.008005;
 use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME           => 'Devel::QuickCover',
-    VERSION_FROM   => 'lib/devel/quickcover.pm',
-    ABSTRACT_FROM  => 'lib/devel/quickcover.pm',
+    VERSION_FROM   => 'lib/Devel/QuickCover.pm',
+    ABSTRACT_FROM  => 'lib/Devel/QuickCover.pm',
     PREREQ_PM      => {
         'Test::More'          => 0,
         'Exporter'            => '5.57',
