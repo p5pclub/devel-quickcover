@@ -65,7 +65,7 @@ static void term(pTHX_ void* arg) {
   sprintf(txt, "%s.txt", base);
   FILE* fp = fopen(tmp, "w");
   if (!fp) {
-    GLOG(("Could not create dump file [%s]", name));
+    GLOG(("Could not create dump file [%s]", tmp));
   } else {
     cover_dump(cover, fp, &now);
     fclose(fp);
