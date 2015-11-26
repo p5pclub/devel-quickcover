@@ -8,6 +8,10 @@ our $GIT_TAG = 'NONE';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
+END {
+    Devel::QuickCover::dump();
+}
+
 1;
 
 __END__

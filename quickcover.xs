@@ -19,6 +19,7 @@
 
 static CoverList* cover = 0;
 static Perl_ppaddr_t ons_orig = 0;
+static int dumped = 0;
 
 static OP* ons_quickcover(pTHX) {
   /* Restore original PP function for speed, already tracked this location. */
@@ -34,7 +35,13 @@ static OP* ons_quickcover(pTHX) {
   return ret;
 }
 
-static void term(pTHX_ void* arg) {
+static void qc_dump(void) {
+  if (dumped) {
+    GLOG(("already dumped"));
+    return;
+  }
+
+  ++dumped;
   GLOG(("cleaning up"));
 
   GLOG(("dumping cover [%p]", cover));
@@ -77,6 +84,11 @@ static void term(pTHX_ void* arg) {
   cover = 0;
 }
 
+static void term(pTHX_ void* arg) {
+  GLOG(("term() from atexit"));
+  qc_dump();
+}
+
 static void init(pTHX) {
   GLOG(("initialising"));
 
@@ -101,9 +113,13 @@ PROTOTYPES: DISABLE
 
 void
 import(SV* pclass)
-  PREINIT:
   CODE:
     __attribute__((unused)) const char* cclass = SvPV_nolen(pclass);
     GLOG(("@@@ import() for [%s]", cclass));
-
     init(aTHX);
+
+void
+dump()
+  CODE:
+    GLOG(("@@@ dump()"));
+    qc_dump();
