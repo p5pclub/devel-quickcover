@@ -5,11 +5,13 @@ glog.c
 glog.h
 gmem.c
 gmem.h
-lib/Devel/QuickCover.pm
 ppport.h
+
+lib/Devel/QuickCover.pm
+bin/qc-aggregate.pl
 
 Changes
 LICENSE
 Makefile.PL
-MANIFEST			This list of files
+MANIFEST             This list of files
 README.md
