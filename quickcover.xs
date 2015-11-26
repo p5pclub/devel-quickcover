@@ -172,9 +172,9 @@ PROTOTYPES: DISABLE
 #################################################################
 
 void
-import(SV*)
+start()
   CODE:
-    GLOG(("@@@ import()"));
+    GLOG(("@@@ start()"));
     pl_init(aTHX);
     qc_init();
 

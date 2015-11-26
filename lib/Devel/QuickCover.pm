@@ -7,6 +7,10 @@ our $VERSION = '0.11';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
+sub import {
+    Devel::QuickCover::start();
+}
+
 END {
     Devel::QuickCover::dump();
 }
