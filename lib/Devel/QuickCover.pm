@@ -4,7 +4,6 @@ use warnings;
 use XSLoader;
 
 our $VERSION = '0.11';
-our $GIT_TAG = 'NONE';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
