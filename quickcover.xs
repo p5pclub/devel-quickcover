@@ -27,8 +27,10 @@ static OP* ons_quickcover(pTHX) {
   /* Call original PP function */
   OP* ret = ons_orig(aTHX);
 
-  /* Now do our own nefarious tracking... */
-  cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
+  if (cover) {
+    /* Now do our own nefarious tracking... */
+    cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
+  }
 
   /* Return whatever we got from original PP function */
   return ret;
