@@ -19,7 +19,6 @@
 
 static CoverList* cover = 0;
 static Perl_ppaddr_t ons_orig = 0;
-static int dumped = 0;
 
 static OP* ons_quickcover(pTHX) {
   /* Restore original PP function for speed, already tracked this location. */
@@ -36,15 +35,7 @@ static OP* ons_quickcover(pTHX) {
 }
 
 static void qc_dump(void) {
-  if (dumped) {
-    GLOG(("already dumped"));
-    return;
-  }
-
-  ++dumped;
-  GLOG(("cleaning up"));
-
-  GLOG(("dumping cover [%p]", cover));
+  GLOG(("qc_dump: dumping cover [%p]", cover));
   time_t t = time(0);
   struct tm now;
   localtime_r(&t, &now);
@@ -72,37 +63,47 @@ static void qc_dump(void) {
   sprintf(txt, "%s/%s%s" , QC_DIRECTORY, base, QC_EXTENSION);
   FILE* fp = fopen(tmp, "w");
   if (!fp) {
-    GLOG(("Could not create dump file [%s]", tmp));
+    GLOG(("qc_dump: could not create dump file [%s]", tmp));
   } else {
     cover_dump(cover, fp, &now);
     fclose(fp);
     rename(tmp, txt);
   }
 
-  GLOG(("deleting cover [%p]", cover));
+  GLOG(("qc_dump: deleting cover [%p]", cover));
   cover_destroy(cover);
   cover = 0;
 }
 
 static void term(pTHX_ void* arg) {
-  GLOG(("term() from atexit"));
+  if (! cover) {
+    GLOG(("term: not initialised"));
+    return;
+  }
+
+  GLOG(("term: called from atexit"));
   qc_dump();
 }
 
 static void init(pTHX) {
-  GLOG(("initialising"));
+  if (cover) {
+    GLOG(("init: already initialised"));
+    return;
+  }
+
+  GLOG(("init: initialising"));
 
   cover = cover_create();
-  GLOG(("created cover [%p]", cover));
+  GLOG(("init: created cover [%p]", cover));
 
   ons_orig = PL_ppaddr[OP_NEXTSTATE];
-  GLOG(("current op is [%p]", ons_orig));
+  GLOG(("init: current op is [%p]", ons_orig));
 
   PL_ppaddr[OP_NEXTSTATE] = ons_quickcover;
-  GLOG(("op changed to [%p]", ons_quickcover));
+  GLOG(("init: op changed to [%p]", ons_quickcover));
 
   Perl_call_atexit(aTHX_ term, 0);
-  GLOG(("registered cleanup [%p] at_exit", term));
+  GLOG(("init: registered cleanup [%p] at_exit", term));
 }
 
 
