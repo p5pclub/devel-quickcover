@@ -11,7 +11,7 @@ WriteMakefile(
     },
     AUTHOR         => 'Gonzalo Diethelm (gonzus@cpan.org)',
     LIBS           => [''],
-    DEFINE         => '-DGMEM_CHECK',
+#    DEFINE         => '-DGMEM_CHECK',
 #    DEFINE         => '-DGLOG_SHOW',
 #    DEFINE         => '-DGMEM_CHECK=1 -DGLOG_SHOW',
     INC            => '-I.',
