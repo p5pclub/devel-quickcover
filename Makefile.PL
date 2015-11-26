@@ -25,9 +25,11 @@ sub cflags {
     my $cflags = $self->SUPER::cflags(@_);
     my @cflags = split /\n/, $cflags;
 
-    $self->{CCFLAGS} .= ' -Wall';     # Flag all warnings
-    $self->{CCFLAGS} .= ' -std=c89';  # Compile according to C99 standard
-    # $self->{CCFLAGS} .= ' -pedantic'; # Be pedantic about warnings - no GNU extensions
+    $self->{CCFLAGS} .= ' -Wall';                # Flag all warnings
+    # $self->{CCFLAGS} .= ' -std=c99';             # Compile according to C99 standard
+    $self->{CCFLAGS} .= ' -std=c89';             # Compile according to C89 standard
+    # $self->{CCFLAGS} .= ' -pedantic';            # Be pedantic about warnings - no GNU extensions
+    $self->{CCFLAGS} .= ' -D_XOPEN_SOURCE=700';  # Needed for localtime_r()
 
     foreach (@cflags) {
         $_ = "CCFLAGS = $self->{CCFLAGS}" if /^CCFLAGS/;
