@@ -43,6 +43,8 @@ static void qc_term(void) {
 
 static void qc_dump(void) {
   static int count = 0;
+  static time_t last = 0;
+
   time_t t = time(0);
   FILE* fp = 0;
   char base[1024];
@@ -56,7 +58,16 @@ static void qc_dump(void) {
   }
 
   /*
-   * Get current time:
+   * If current time is different from last time (seconds resolution), reset
+   * file suffix counter to zero.
+   */
+  if (last != t) {
+    last = t;
+    count = 0;
+  }
+
+  /*
+   * Get detailed current time:
    */
   localtime_r(&t, &now);
 
@@ -64,6 +75,9 @@ static void qc_dump(void) {
    * We generate the information on a file with the following structure:
    *
    *   dir/prefix_YYYYMMDD_hhmmss_pid_NNNNN.txt
+   *
+   * where NNNNN is a suffix counter to allow for more than one file in a
+   * single second interval.
    */
   sprintf(base, "%s_%04d%02d%02d_%02d%02d%02d_%ld_%05d",
           QC_PREFIX,
