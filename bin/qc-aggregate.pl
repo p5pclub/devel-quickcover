@@ -1,6 +1,5 @@
 use strict;
 use warnings;
-use DEBUG;
 
 use Sereal qw(encode_sereal decode_sereal);
 use File::Slurp qw(read_file write_file);
