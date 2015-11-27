@@ -15,23 +15,17 @@
 #define QC_EXTENSION ".txt"
 
 static CoverList* cover = 0;
+int enabled = 0;
 
 static void qc_install(pTHX);
-static void qc_uninstall(pTHX);
 static OP*  qc_nextstate(pTHX);
 
 static Perl_ppaddr_t nextstate_orig = 0;
 
 static void qc_install(pTHX) {
     if ( PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
-        die("QuickCover internal error, exiting: qc_install probably called twice in a row ");
+        die("QuickCover internal error, exiting: qc_install called again");
         exit(EXIT_FAILURE);
-    }
-
-    /* If necessary, create cover data repository */
-    if (!cover) {
-        cover = cover_create();
-        GLOG(("qc_install: created cover data is [%p]", cover));
     }
 
     nextstate_orig = PL_ppaddr[OP_NEXTSTATE];
@@ -43,33 +37,19 @@ static void qc_install(pTHX) {
           nextstate_orig, qc_nextstate));
 }
 
-static void qc_uninstall(pTHX) {
-    if ( PL_ppaddr[OP_NEXTSTATE] != qc_nextstate) {
-        die("QuickCover internal error, exiting: qc_uninstall probably called twice in a row ");
-        exit(EXIT_FAILURE);
-    }
-
-    PL_ppaddr[OP_NEXTSTATE] = nextstate_orig;
-    GLOG(("qc_uninstall: nextstate reset to [%p]", nextstate_orig));
-}
-
 static OP* qc_nextstate(pTHX) {
     OP* ret = 0;
-
-    /* Restore original PP function for speed, already tracked this location. */
-    PL_op->op_ppaddr = nextstate_orig;
 
     /* Call original PP function */
     ret = nextstate_orig(aTHX);
 
-    if (cover) {
+    if (enabled) {
+        if (!cover) {
+            cover = cover_create();
+            GLOG(("qc_nextstate: created cover data is [%p]", cover));
+        }
         /* Now do our own nefarious tracking... */
         cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
-    } else {
-        /*
-          After uninstalling the hook there can still be OP trees with
-          the hooked pp_nextstate
-         */
     }
 
     return ret;
@@ -143,31 +123,32 @@ static void qc_dump(CoverList *cover) {
 }
 
 
-
-
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
 PROTOTYPES: DISABLE
 
 #################################################################
 
+BOOT:
+    qc_install(aTHX);
+
 void
 start()
 CODE:
     GLOG(("@@@ start()"));
-    if (PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
+    if (enabled) {
         croak("Devel::QuickCover::end() must be called before calling Devel::Quickcover::start() again.");
     } else {
-        qc_install(aTHX);
+        enabled=1;
     }
 
 void
 end()
 CODE:
     GLOG(("@@@ end()"));
-    if (PL_ppaddr[OP_NEXTSTATE] != qc_nextstate) {
+    if (!enabled) {
         croak("Devel::QuickCover::start() must be called before calling Devel::Quickcover::end()");
     } else {
-        qc_uninstall(aTHX);
+        enabled=0;
         qc_dump(cover);
         cover_destroy(&cover);
     }
