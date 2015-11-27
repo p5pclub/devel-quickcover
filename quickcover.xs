@@ -10,7 +10,6 @@
 #include "glog.h"
 #include "cover.h"
 
-#define QC_DIRECTORY "/tmp"
 #define QC_PREFIX    "QC"
 #define QC_EXTENSION ".txt"
 
@@ -21,6 +20,8 @@ static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
 
 static Perl_ppaddr_t nextstate_orig = 0;
+
+static const char *output_directory();
 
 static void qc_install(pTHX) {
     if ( PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
@@ -101,13 +102,16 @@ static void qc_dump(CoverList *cover) {
             (long) getpid(),
             count++);
 
-    /*
-     * We generate the information on a file with a prepended dot.  Once we are
-     * done, we atomically rename it and get rid of the dot.  This way, any job
-     * polling for new files will not find any half-done work.
-     */
-    sprintf(tmp, "%s/.%s%s", QC_DIRECTORY, base, QC_EXTENSION);
-    sprintf(txt, "%s/%s%s" , QC_DIRECTORY, base, QC_EXTENSION);
+/*
+ * We generate the information on a file with a prepended dot.  Once we are
+ * done, we atomically rename it and get rid of the dot.  This way, any job
+ * polling for new files will not find any half-done work.
+ */
+    {
+        char *dir = output_directory();
+        sprintf(tmp, "%s/.%s%s", dir, base, QC_EXTENSION);
+        sprintf(txt, "%s/%s%s" , dir, base, QC_EXTENSION);
+    }
     GLOG(("qc_dump: dumping cover data [%p] to file [%s]", cover, txt));
     fp = fopen(tmp, "w");
     if (!fp) {
@@ -121,6 +125,22 @@ static void qc_dump(CoverList *cover) {
     GLOG(("qc_dump: deleting cover data [%p]", cover));
 }
 
+static const char *output_directory() {
+    HV *qc_config;
+    SV **val;
+    STRLEN len;
+
+    qc_config = get_hv("Devel::QuickCover::CONFIG", 0);
+    if (!qc_config) {
+        die("Internal error, exiting: Devel::QuickCover::CONFIG must exist");
+    }
+    val = hv_fetch(qc_config, "output_directory", sizeof("output_directory")-1, 0);
+
+    if (!SvUTF8(*val)) {
+        sv_utf8_upgrade(*val);
+    }
+    return SvPV_const(*val, len);
+}
 
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
 PROTOTYPES: DISABLE

@@ -6,14 +6,11 @@ use Test::More;
 BEGIN {
     my $dir = tempdir( "quickcover-test-XXXX", TMPDIR => 1);
     require Devel::QuickCover;
-    Devel::QuickCover->import(nostart=>0, nodump=>1, output_directory=>$dir);
+    Devel::QuickCover->import(nostart=>1, nodump=>1, output_directory=>$dir);
 }
 
-
-print STDERR
-
 my $x=1;
-#Devel::QuickCover::start();
+Devel::QuickCover::start();
 my $y=2;
 Devel::QuickCover::end();
 my $z=3;
