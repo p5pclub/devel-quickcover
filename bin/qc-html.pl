@@ -3,17 +3,38 @@
 use strict;
 use warnings;
 
+use Data::Dumper;
+use Digest::MD5 qw(md5_hex);
+use File::Slurp qw(read_file write_file);
+use JSON::XS;
 use Sereal qw(encode_sereal decode_sereal);
-use File::Slurp qw(read_file);
 
 my $QC_DATABASE   = 'qc.dat';
+my $COVERDB       = './cover_db/';
+my $DIGESTS       = "$COVERDB/digests";
+my $STRUCTURE     = "$COVERDB/structure/";
+my $RUNS          = "$COVERDB/runs/";
+
+my $JSON          = JSON::XS->new->utf8;
 
 sub main() {
     my $data = load_data($QC_DATABASE);
 
-    generate_html($data);
+    make_coverdb_directories();
+    generate_cover_db($data);
 
     return 0;
+}
+
+sub make_coverdb_directories {
+    -d $COVERDB
+        or mkdir $COVERDB;
+
+    -d $STRUCTURE
+        or mkdir $STRUCTURE;
+
+    -d $RUNS
+        or mkdir $RUNS;
 }
 
 sub load_data {
@@ -28,16 +49,92 @@ sub load_data {
     return $decoded;
 }
 
-sub generate_html {
-    my $data = shift;
+sub coverdb_decode {
+    $JSON->decode(shift);
+}
+
+sub coverdb_encode {
+    $JSON->encode(shift);
+}
+
+sub generate_cover_db {
+    my $data     = shift;
+    my $digests  = {};
+
+    if (-r $DIGESTS) {
+        my $digests_data = read_file($DIGESTS, { binmode => ':raw' });
+        $digests //= coverdb_decode( $digests_data );
+    }
+
+    my $run = {
+        OS        => 'xx',
+        collected => [ 'statement' ],
+        count     => {},
+        digests   => {},
+        start     => 0,
+        run       => 'xx',
+    };
 
     for my $file (keys %{ $data }) {
-        my @lines = keys $data->{$file};
-        my $cmd   = "pygmentize -f html -O full,linenos=inline,stripnl=0,hl_lines='@lines' -o $file.html $file";
+        my $hits              = $data->{ $file };
+        my ($statement, $md5) = process_file_structure($file, $digests);
 
-        exec($cmd)
-            or print STDERR "Error calling pygmentize: $!";
+        $run->{count}{$file}{statement} = [ map +( $hits->{ $_ } // 0), @{ $statement } ];
+        $run->{digests}{$file}          = $md5;
     }
+
+    write_file( $DIGESTS, { binmode => ':raw' }, coverdb_encode( $digests ) );
+
+    my $run_id = rand(1000);
+    my $run_structure = { runs => { $run_id => $run } };
+    mkdir ( "$RUNS/$run_id" );
+
+    write_file ( "$RUNS/$run_id/cover.14", { binmode => ':raw' }, coverdb_encode( $run_structure ) );
+}
+
+sub process_file_structure {
+    my ($file, $digests) = @_;
+
+    if (!-r $file) {
+        print "Skipping $file for now. Probably an eval";
+        return;
+    }
+
+    my $content = read_file($file, { binmode => ':raw'});
+    my $md5     = md5_hex( $content );
+    my $statement;
+
+    if (! exists($digests->{ $md5 })) {
+        $digests->{ $md5 } = $file;
+        $statement         = write_structure($file, $md5, $content);
+    } else {
+        my $structure_data = read_file( "$STRUCTURE/$md5", { binmode => ':raw' });
+        my $structure      = coverdb_decode($structure_data);
+        $statement         = $structure->{statement};
+    }
+    return $statement, $md5;
+}
+
+sub write_structure {
+    my ($file, $md5, $content) = @_;
+
+    my @lines   = split /\n/, $content;
+    my $statement = [
+        map  $_->[0],                                   # get the line number
+        grep $_->[1] !~ /^\s*#/ && $_->[1] !~ /^\s*$/,  # ignore comments and whitespaces
+        map  [ $_ + 1, $lines[$_] ], 0 .. $#lines,      # enumerate($data)
+    ];
+
+    my $structure = {
+        file       => $file,
+        digest     => $md5,
+        start      => {},
+        statement  => $statement,
+        subroutine => [],
+    };
+
+    write_file( "$STRUCTURE/$md5", { binmode => ':raw' }, coverdb_encode( $structure ));
+    return $statement;
 }
 
 exit main();
