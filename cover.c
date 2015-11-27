@@ -76,41 +76,36 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   return node;
 }
 
-void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
-  struct tm now;
+void cover_dump(CoverList* cover, FILE* fp) {
   CoverNode* node = 0;
+  int ncount = 0;
 
-  if (stamp == 0) {
-    time_t t = time(0);
-    stamp = localtime_r(&t, &now);
-  }
-  fprintf(fp, "# These are comments. Each line block has the following fields:\n");
-  fprintf(fp, "#\n");
-  fprintf(fp, "# 0 number_of_files year month day hour minute second\n");
-  fprintf(fp, "# 1 number_of_lines file_name\n");
-  fprintf(fp, "# 2 line_covered\n");
-  fprintf(fp, "# --------------\n");
-  fprintf(fp, "%d %d %d %d %d %d %d %d\n",
-          COVER_TAG_SUMMARY,
-          cover->size,
-          stamp->tm_year + 1900, stamp->tm_mon + 1, stamp->tm_mday,
-          stamp->tm_hour, stamp->tm_min, stamp->tm_sec);
+  /*
+   * We output the cover data as elements in a JSON hash
+   * that must be opened / closed outside this routine.
+   */
+  fprintf(fp, "\"files\":{");
   for (node = cover->head; node != 0; node = node->next) {
     int j = 0;
+    int lcount = 0;
 
-    fprintf(fp, "%d %d %s\n",
-            COVER_TAG_FILE_INFO,
-            node->bcnt,
+    if (ncount++) {
+      fprintf(fp, ",");
+    }
+    fprintf(fp, "\"%s\":[",
             node->file);
     for (j = 0; j < node->bmax; ++j) {
       if (BIT_IS_ON(node->lines, j)) {
         /* TODO: maybe output more than one line in each line with type 2? */
-        fprintf(fp, "%d %d\n",
-                COVER_TAG_LINE_INFO,
-                j+1);
+        if (lcount++) {
+          fprintf(fp, ",");
+        }
+        fprintf(fp, "{\"%d\":%d}", j+1, 1);
       }
     }
+    fprintf(fp, "]");
   }
+  fprintf(fp, "}");
 }
 
 static void cover_node_set_line(CoverNode* node, int line) {

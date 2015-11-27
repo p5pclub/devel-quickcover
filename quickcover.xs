@@ -20,7 +20,7 @@
 static void qc_init(void);
 static void qc_term(pTHX);
 static void qc_dump(pTHX);
-static void qc_dump_hash(pTHX_ HV* hash);
+static void qc_dump_hash(pTHX_ const char* name, HV* hash, FILE* fp);
 
 
 static CoverList* cover = 0;
@@ -106,11 +106,21 @@ static void qc_dump(pTHX)
   if (!fp) {
     GLOG(("qc_dump: could not create dump file [%s]", tmp));
   } else {
-    qc_dump_hash(aTHX_ global_args);
-    qc_dump_hash(aTHX_ local_args);
+    fprintf(fp, "{");
+
+    qc_dump_hash(aTHX_ "global", global_args, fp);
+    qc_dump_hash(aTHX_ "local",  local_args, fp);
     local_args = 0;
 
-    cover_dump(cover, fp, &now);
+    fprintf(fp, "\"date\":\"%04d-%02d-%02d\",",
+            now.tm_year + 1900, now.tm_mon + 1, now.tm_mday);
+    fprintf(fp, "\"time\":\"%02d:%02d:%02d\",",
+            now.tm_hour, now.tm_min, now.tm_sec);
+    fprintf(fp, "\"gonzo\":\"rules\",");
+
+    cover_dump(cover, fp);
+
+    fprintf(fp, "}");
     fclose(fp);
     rename(tmp, txt);
   }
@@ -120,11 +130,17 @@ static void qc_dump(pTHX)
   cover = 0;
 }
 
-static void qc_dump_hash(pTHX_ HV* hash)
+static void qc_dump_hash(pTHX_ const char* name, HV* hash, FILE* fp)
 {
-  dump_hash(aTHX_ hash, stderr);
-  fprintf(stderr, "\n");
+  if (!hash || !name) {
+    return;
+  }
+
+  fprintf(fp, "\"%s\":", name);
+  dump_hash(aTHX_ global_args, fp);
+  fprintf(fp, ",");
 }
+
 
 /* FUNCTIONS RELATED TO PERL */
 
@@ -217,7 +233,6 @@ start(...)
       if (SvOK(a0) && SvROK(a0) && SvTYPE(SvRV(a0)) == SVt_PVHV) {
         global_args = (HV*) SvREFCNT_inc(SvRV(a0));
         GLOG(("Got global args %p", global_args));
-        qc_dump_hash(aTHX_ global_args);
       }
     }
     pl_init(aTHX);
@@ -234,7 +249,6 @@ dump(...)
       if (SvOK(a0) && SvROK(a0) && SvTYPE(SvRV(a0)) == SVt_PVHV) {
         local_args = (HV*) SvRV(a0);
         GLOG(("Got local args %p", local_args));
-        qc_dump_hash(aTHX_ local_args);
       }
     }
     qc_term(aTHX);

@@ -49,6 +49,6 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line);
  * Dump all data to a given file stream; if stamp is given, use it as the
  * "current timestamp" for the dump.
  */
-void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp);
+void cover_dump(CoverList* cover, FILE* fp);
 
 #endif
