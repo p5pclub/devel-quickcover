@@ -156,9 +156,9 @@ CODE:
     GLOG(("@@@ start()"));
     if (enabled) {
         croak("Devel::QuickCover::end() must be called before calling Devel::Quickcover::start() again.");
-    } else {
-        enabled=1;
     }
+
+    enabled = 1;
 
 void
 end()
@@ -166,8 +166,8 @@ CODE:
     GLOG(("@@@ end()"));
     if (!enabled) {
         croak("Devel::QuickCover::start() must be called before calling Devel::Quickcover::end()");
-    } else {
-        enabled=0;
-        qc_dump(cover);
-        cover_destroy(&cover);
     }
+
+    enabled = 0;
+    qc_dump(aTHX_ cover);
+    cover_destroy(&cover);
