@@ -76,6 +76,11 @@ sub generate_cover_db {
     };
 
     for my $file (keys %{ $data }) {
+        if (!-r $file) {
+            print "Skipping $file for now. Probably an eval\n";
+            next;
+        }
+
         my $hits              = $data->{ $file };
         my ($statement, $md5) = process_file_structure($file, $digests);
 
@@ -94,11 +99,6 @@ sub generate_cover_db {
 
 sub process_file_structure {
     my ($file, $digests) = @_;
-
-    if (!-r $file) {
-        print "Skipping $file for now. Probably an eval";
-        return;
-    }
 
     my $content = read_file($file, { binmode => ':raw'});
     my $md5     = md5_hex( $content );
