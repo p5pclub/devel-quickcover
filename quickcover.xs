@@ -21,24 +21,7 @@ static OP*  qc_nextstate(pTHX);
 
 static Perl_ppaddr_t nextstate_orig = 0;
 
-
-const char *output_directory() {
-    HV *qc_config;
-    SV **val;
-    STRLEN len;
-
-    qc_config = get_hv("Devel::QuickCover::CONFIG", 0);
-    if (!qc_config) {
-        die("Internal error, exiting: Devel::QuickCover::CONFIG must exist");
-    }
-    val = hv_fetch(qc_config, "output_directory", sizeof("output_directory")-1, 0);
-
-    fprintf(stderr, "val: %p\n", val);
-    if (!SvUTF8(*val)) {
-        sv_utf8_upgrade(*val);
-    }
-    return SvPV_const(*val, len);
-}
+static const char *output_directory;
 
 static void qc_install(pTHX) {
     if ( PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
@@ -142,6 +125,23 @@ static void qc_dump(CoverList *cover) {
     GLOG(("qc_dump: deleting cover data [%p]", cover));
 }
 
+static const char *output_directory() {
+    HV *qc_config;
+    SV **val;
+    STRLEN len;
+
+    qc_config = get_hv("Devel::QuickCover::CONFIG", 0);
+    if (!qc_config) {
+        die("Internal error, exiting: Devel::QuickCover::CONFIG must exist");
+    }
+    val = hv_fetch(qc_config, "output_directory", sizeof("output_directory")-1, 0);
+
+    fprintf(stderr, "val: %p\n", val);
+    if (!SvUTF8(*val)) {
+        sv_utf8_upgrade(*val);
+    }
+    return SvPV_const(*val, len);
+}
 
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
 PROTOTYPES: DISABLE
