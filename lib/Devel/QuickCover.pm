@@ -11,7 +11,7 @@ XSLoader::load( 'Devel::QuickCover', $VERSION );
 my %DEFAULT_CONFIG = (
     nostart          => 0,   # Don't start gathering coverage information on import
     nodump           => 0,   # Don't dump the coverage report at the END of the program
-    output_directory => ".", # Write report to that directory
+    output_directory => "/tmp", # Write report to that directory
 );
 our %CONFIG;
 
