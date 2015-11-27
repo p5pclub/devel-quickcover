@@ -25,7 +25,6 @@ static Perl_ppaddr_t nextstate_orig = 0;
 static void qc_install(pTHX) {
     if ( PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
         die("QuickCover internal error, exiting: qc_install called again");
-        exit(EXIT_FAILURE);
     }
 
     nextstate_orig = PL_ppaddr[OP_NEXTSTATE];
