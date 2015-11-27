@@ -56,16 +56,21 @@ static void qc_uninstall(pTHX) {
 static OP* qc_nextstate(pTHX) {
     OP* ret = 0;
 
-
-    GLOG(("I'm still running\n"));
     /* Restore original PP function for speed, already tracked this location. */
     PL_op->op_ppaddr = nextstate_orig;
 
     /* Call original PP function */
     ret = nextstate_orig(aTHX);
 
-    /* Now do our own nefarious tracking... */
-    cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
+    if (cover) {
+        /* Now do our own nefarious tracking... */
+        cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
+    } else {
+        /*
+          After uninstalling the hook there can still be OP trees with
+          the hooked pp_nextstate
+         */
+    }
 
     return ret;
 }
