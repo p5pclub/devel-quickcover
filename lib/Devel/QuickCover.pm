@@ -8,7 +8,12 @@ our $VERSION = '0.11';
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
 sub import {
-    Devel::QuickCover::start();
+    my %args;
+
+    shift;
+    %args = @_ if (@_ > 0);
+    printf("Args: [%s]\n", join(',', @_));
+    Devel::QuickCover::start(\%args);
 }
 
 END {

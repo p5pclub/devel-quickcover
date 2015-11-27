@@ -8,6 +8,7 @@
 #include <time.h>
 #include "glog.h"
 #include "cover.h"
+#include "util.h"
 
 #define QC_DIRECTORY "/tmp"
 #define QC_PREFIX    "QC"
@@ -17,13 +18,18 @@
 /* FUNCTIONS RELATED TO COVER DATA MANAGEMENT */
 
 static void qc_init(void);
-static void qc_term(void);
-static void qc_dump(void);
+static void qc_term(pTHX);
+static void qc_dump(pTHX);
+static void qc_dump_hash(pTHX_ HV* hash);
+
 
 static CoverList* cover = 0;
+static HV* global_args = 0;
+static HV* local_args = 0;
 static int qc_inited = 0;
 
-static void qc_init(void) {
+static void qc_init(void)
+{
   if (qc_inited) {
     GLOG(("qc_init: already initialised"));
     return;
@@ -32,16 +38,18 @@ static void qc_init(void) {
   qc_inited = 1;
 }
 
-static void qc_term(void) {
+static void qc_term(pTHX)
+{
   if (!qc_inited) {
     GLOG(("qc_term: not initialised"));
     return;
   }
 
-  qc_dump();
+  qc_dump(aTHX);
 }
 
-static void qc_dump(void) {
+static void qc_dump(pTHX)
+{
   static int count = 0;
   static time_t last = 0;
 
@@ -98,6 +106,10 @@ static void qc_dump(void) {
   if (!fp) {
     GLOG(("qc_dump: could not create dump file [%s]", tmp));
   } else {
+    qc_dump_hash(aTHX_ global_args);
+    qc_dump_hash(aTHX_ local_args);
+    local_args = 0;
+
     cover_dump(cover, fp, &now);
     fclose(fp);
     rename(tmp, txt);
@@ -108,6 +120,11 @@ static void qc_dump(void) {
   cover = 0;
 }
 
+static void qc_dump_hash(pTHX_ HV* hash)
+{
+  dump_hash(aTHX_ hash, stderr);
+  fprintf(stderr, "\n");
+}
 
 /* FUNCTIONS RELATED TO PERL */
 
@@ -118,7 +135,8 @@ static OP* pl_opnext(pTHX);
 static Perl_ppaddr_t ons_orig = 0;
 static int pl_inited = 0;
 
-static void pl_init(pTHX) {
+static void pl_init(pTHX)
+{
   if (pl_inited) {
     GLOG(("pl_init: already initialised"));
     return;
@@ -138,7 +156,8 @@ static void pl_init(pTHX) {
   GLOG(("pl_init: op next changed to [%p]", pl_opnext));
 }
 
-static void pl_term(pTHX_ void* arg) {
+static void pl_term(pTHX_ void* arg)
+{
   if (!pl_inited) {
     GLOG(("pl_term: not initialised"));
     return;
@@ -148,10 +167,11 @@ static void pl_term(pTHX_ void* arg) {
   GLOG(("pl_term: op next reset to [%p]", ons_orig));
   pl_inited = 0;
 
-  qc_dump();
+  qc_dump(aTHX);
 }
 
-static OP* pl_opnext(pTHX) {
+static OP* pl_opnext(pTHX)
+{
   OP* ret = 0;
 
   /* Restore original PP function for speed, already tracked this location. */
@@ -173,7 +193,7 @@ static OP* pl_opnext(pTHX) {
    * If you wish to exercise memory and dumping multiple files, uncomment this
    * line.
    */
-  /* qc_dump(); */
+  /* qc_dump(aTHX); */
 
   /* Return whatever we got from original PP function */
   return ret;
@@ -186,14 +206,35 @@ PROTOTYPES: DISABLE
 #################################################################
 
 void
-start()
+start(...)
+  PREINIT:
+    SV* a0 = 0;
   CODE:
-    GLOG(("@@@ start()"));
+    GLOG(("@@@ start(), items %d", items));
+    if (items > 0) {
+      GLOG(("Items > 0 : %d", items));
+      a0 = ST(0);
+      if (SvOK(a0) && SvROK(a0) && SvTYPE(SvRV(a0)) == SVt_PVHV) {
+        global_args = (HV*) SvREFCNT_inc(SvRV(a0));
+        GLOG(("Got global args %p", global_args));
+        qc_dump_hash(aTHX_ global_args);
+      }
+    }
     pl_init(aTHX);
     qc_init();
 
 void
-dump()
+dump(...)
+  PREINIT:
+    SV* a0 = 0;
   CODE:
     GLOG(("@@@ dump()"));
-    qc_term();
+    if (items > 0) {
+      a0 = ST(1);
+      if (SvOK(a0) && SvROK(a0) && SvTYPE(SvRV(a0)) == SVt_PVHV) {
+        local_args = (HV*) SvRV(a0);
+        GLOG(("Got local args %p", local_args));
+        qc_dump_hash(aTHX_ local_args);
+      }
+    }
+    qc_term(aTHX);
