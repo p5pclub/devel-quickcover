@@ -21,7 +21,7 @@ static OP*  qc_nextstate(pTHX);
 
 static Perl_ppaddr_t nextstate_orig = 0;
 
-static const char *output_directory;
+static const char *output_directory();
 
 static void qc_install(pTHX) {
     if ( PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
