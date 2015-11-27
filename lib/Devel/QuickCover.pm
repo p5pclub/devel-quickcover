@@ -2,17 +2,49 @@ package Devel::QuickCover;
 use strict;
 use warnings;
 use XSLoader;
+use Data::Dumper;
 
 our $VERSION = '0.11';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
+my %DEFAULT_CONFIG = (
+    nostart          => 0,   # Don't start gathering coverage information on import
+    nodump           => 0,   # Don't dump the coverage report at the END of the program
+    output_directory => ".", # Write report to that directory
+);
+our %CONFIG;
+
 sub import {
-    Devel::QuickCover::start();
+    my ($class, @opts) = @_;
+
+    die "Invalud argument to import, it takes key-value pairs. FOO => BAR" if 1==@opts % 2;
+    my %options = @opts;
+
+    %CONFIG = %DEFAULT_CONFIG;
+    for (keys %options) {
+        if (exists $DEFAULT_CONFIG{$_}) {
+            $CONFIG{$_} = delete $options{$_};
+        }
+    }
+
+    if (keys %options > 0) {
+        die "Invalid import option(s): ".join(',',keys %options) ;
+    }
+
+    if (not $CONFIG{'nostart'}) {
+        Devel::QuickCover::start();
+    }
+}
+
+sub add_metadata {
+    die "not implemented";
 }
 
 END {
-    Devel::QuickCover::dump();
+    if (not $CONFIG{'nodump'}) {
+        Devel::QuickCover::end();
+    }
 }
 
 1;
@@ -31,9 +63,28 @@ Devel::QuickCover - Quick & dirty code coverage for Perl
 
 Version 0.100
 
-=head1 NAME
-
 =head1 SYNOPSIS
+
+The following program sets up the coverage hook on C<use> and dumps a
+report to the current working directory at the end of execution.
+
+	use Devel::QuickCover;
+        my $x = 1;
+        my $z = 1 + $x;
+
+The following program sets up the coverage hook on C<start()> and
+dumps a report to the C<output_directory> on C<end()> at which
+point the coverage hook gets uninstalled. So we only get coverage
+information for C<bar()>.
+
+       use Devel::QuickCover (nostart => 1, nodump => 1, output_directory => "some_dir/");
+       foo();
+       Devel::QuickCover::start();
+       bar();
+       Devel::QuickCover::add_metadata({ foo => "FOO", bar => "BAR" });
+       Devel::QuickCover::end();
+       baz();
+
 
 =head1 DESCRIPTION
 

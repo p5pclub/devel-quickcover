@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,14 +32,14 @@ CoverList* cover_create(void) {
   return cover;
 }
 
-void cover_destroy(CoverList* cover) {
+void cover_destroy(CoverList** cover) {
   CoverNode* node = 0;
 
-  if (!cover) {
-    return;
-  }
+  assert(cover);
+  if (!*cover)
+      return;
 
-  for (node = cover->head; node != 0; ) {
+  for (node = (*cover)->head; node != 0; ) {
     CoverNode* tmp = node;
     GLOG(("Destroying set for [%s], %d/%d elements", node->file, node->bcnt, node->alen*CHAR_BIT));
     node = node->next;
@@ -49,12 +50,15 @@ void cover_destroy(CoverList* cover) {
     GLOG(("Destroying node [%p]", tmp));
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
   }
-  GLOG(("Destroying cover [%p]", cover));
-  GMEM_DEL(cover, CoverList*, sizeof(CoverList));
+  GLOG(("Destroying cover [%p]", *cover));
+  GMEM_DEL(*cover, CoverList*, sizeof(CoverList));
 }
 
 CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
+
+  assert(cover);
+
   for (node = cover->head; node != 0; node = node->next) {
     if (strcmp(node->file, file) == 0) {
       break;
@@ -75,6 +79,7 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   cover_node_set_line(node, line);
   return node;
 }
+
 
 void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp) {
   struct tm now;

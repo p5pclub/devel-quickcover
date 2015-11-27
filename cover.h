@@ -36,8 +36,9 @@ CoverList* cover_create(void);
 
 /*
  * Destroy a CoverList object.
+ * After freeing the CoverList we assign NULL to cover
  */
-void cover_destroy(CoverList* cover);
+void cover_destroy(CoverList** cover);
 
 /*
  * Add a file:line to the CoverList; will create CoverNode for file, if it
@@ -50,5 +51,6 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line);
  * "current timestamp" for the dump.
  */
 void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp);
+
 
 #endif
