@@ -13,6 +13,9 @@
 #define QC_PREFIX    "QC"
 #define QC_EXTENSION ".txt"
 
+#define QC_CONFIG_VAR "Devel::QuickCover::CONFIG"
+#define QC_CONFIG_OUTPUT_DIR "output_directory"
+
 #define REHOOK_PREALLOC_SIZE (1<<12)
 static AV* rehook_ops = 0;
 
@@ -22,19 +25,19 @@ int enabled = 0;
 
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
-static const char *output_directory();
+static const char *output_directory(pTHX);
 
-static void qc_install(pTHX) {
-    if ( PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
+static void qc_install(pTHX)
+{
+    if (PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
         die("QuickCover internal error, exiting: qc_install called again");
     }
 
     nextstate_orig = PL_ppaddr[OP_NEXTSTATE];
     PL_ppaddr[OP_NEXTSTATE] = qc_nextstate;
 
-
-    GLOG(("qc_install: nextstate_orig     is [%p]\n"
-          "                  qc_nextstate is [%p]\n",
+    GLOG(("qc_install: nextstate_orig is [%p]\n"
+          "              qc_nextstate is [%p]\n",
           nextstate_orig, qc_nextstate));
 }
 
@@ -54,7 +57,8 @@ static OP* qc_nextstate(pTHX) {
     return ret;
 }
 
-static void qc_dump(CoverList *cover) {
+static void qc_dump(pTHX_ CoverList *cover)
+{
     static int count = 0;
     static time_t last = 0;
 
@@ -62,6 +66,7 @@ static void qc_dump(CoverList *cover) {
 
     time_t t = time(0);
     FILE* fp = 0;
+    const char *dir = 0;
     char base[1024];
     char tmp[1024];
     char txt[1024];
@@ -73,8 +78,8 @@ static void qc_dump(CoverList *cover) {
     }
 
     /*
-     * If current time is different from last time (seconds resolution), reset
-     * file suffix counter to zero.
+     * If current time is different from last time (seconds
+     * resolution), reset file suffix counter to zero.
      */
     if (last != t) {
         last = t;
@@ -101,16 +106,15 @@ static void qc_dump(CoverList *cover) {
             (long) getpid(),
             count++);
 
-/*
- * We generate the information on a file with a prepended dot.  Once we are
- * done, we atomically rename it and get rid of the dot.  This way, any job
- * polling for new files will not find any half-done work.
- */
-    {
-        char *dir = output_directory();
-        sprintf(tmp, "%s/.%s%s", dir, base, QC_EXTENSION);
-        sprintf(txt, "%s/%s%s" , dir, base, QC_EXTENSION);
-    }
+    /*
+     * We generate the information on a file with a prepended dot.  Once we are
+     * done, we atomically rename it and get rid of the dot.  This way, any job
+     * polling for new files will not find any half-done work.
+     */
+    dir = output_directory(aTHX);
+    sprintf(tmp, "%s/.%s%s", dir, base, QC_EXTENSION);
+    sprintf(txt, "%s/%s%s" , dir, base, QC_EXTENSION);
+
     GLOG(("qc_dump: dumping cover data [%p] to file [%s]", cover, txt));
     fp = fopen(tmp, "w");
     if (!fp) {
@@ -124,17 +128,18 @@ static void qc_dump(CoverList *cover) {
     GLOG(("qc_dump: deleting cover data [%p]", cover));
 }
 
-static const char *output_directory() {
-    HV *qc_config;
-    SV **val;
-    STRLEN len;
+static const char *output_directory(pTHX)
+{
+    HV* qc_config = 0;
+    SV** val = 0;
+    STRLEN len = 0;
 
-    qc_config = get_hv("Devel::QuickCover::CONFIG", 0);
+    qc_config = get_hv(QC_CONFIG_VAR, 0);
     if (!qc_config) {
         die("Internal error, exiting: Devel::QuickCover::CONFIG must exist");
     }
-    val = hv_fetch(qc_config, "output_directory", sizeof("output_directory")-1, 0);
-
+    val = hv_fetch(qc_config, QC_CONFIG_OUTPUT_DIR,
+                   sizeof(QC_CONFIG_OUTPUT_DIR) - 1, 0);
     if (!SvUTF8(*val)) {
         sv_utf8_upgrade(*val);
     }
@@ -166,9 +171,9 @@ CODE:
     GLOG(("@@@ start()"));
     if (enabled) {
         croak("Devel::QuickCover::end() must be called before calling Devel::Quickcover::start() again.");
-    } else {
-        enabled=1;
     }
+
+    enabled = 1;
 
 void
 end()
@@ -183,3 +188,7 @@ CODE:
         patch_ppaddr(rehook_ops, qc_nextstate);
         av_clear(rehook_ops);
     }
+
+    enabled = 0;
+    qc_dump(aTHX_ cover);
+    cover_destroy(&cover);
