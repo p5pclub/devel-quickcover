@@ -13,14 +13,15 @@
 #define QC_PREFIX    "QC"
 #define QC_EXTENSION ".txt"
 
+#define REHOOK_PREALLOC_SIZE (1<<12)
+static AV* rehook_ops = 0;
+
+static Perl_ppaddr_t nextstate_orig = 0;
 static CoverList* cover = 0;
 int enabled = 0;
 
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
-
-static Perl_ppaddr_t nextstate_orig = 0;
-
 static const char *output_directory();
 
 static void qc_install(pTHX) {
@@ -38,12 +39,11 @@ static void qc_install(pTHX) {
 }
 
 static OP* qc_nextstate(pTHX) {
-    OP* ret = 0;
-
-    /* Call original PP function */
+    OP* ret;
     ret = nextstate_orig(aTHX);
-
     if (enabled) {
+        PL_op->op_ppaddr = nextstate_orig;
+        av_push(rehook_ops, (SV*)PL_op);
         if (!cover) {
             cover = cover_create();
             GLOG(("qc_nextstate: created cover data is [%p]", cover));
@@ -51,7 +51,6 @@ static OP* qc_nextstate(pTHX) {
         /* Now do our own nefarious tracking... */
         cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
     }
-
     return ret;
 }
 
@@ -142,12 +141,23 @@ static const char *output_directory() {
     return SvPV_const(*val, len);
 }
 
+static void patch_ppaddr(AV *ops, Perl_ppaddr_t ppaddr)
+{
+    I32 i;
+    for (i=0; i<=av_top_index(ops); i++) {
+        ((OP*)(*av_fetch(ops, i, 0)))->op_ppaddr = ppaddr;
+    }
+}
+
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
 PROTOTYPES: DISABLE
 
 #################################################################
 
 BOOT:
+    rehook_ops = newAV();
+    av_extend(rehook_ops,REHOOK_PREALLOC_SIZE);
+    AvREAL_off(rehook_ops);
     qc_install(aTHX);
 
 void
@@ -170,4 +180,6 @@ CODE:
         enabled=0;
         qc_dump(cover);
         cover_destroy(&cover);
+        patch_ppaddr(rehook_ops, qc_nextstate);
+        av_clear(rehook_ops);
     }
