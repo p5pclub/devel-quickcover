@@ -14,8 +14,12 @@
 #define QC_PREFIX    "QC"
 #define QC_EXTENSION ".txt"
 
-#define QC_CONFIG_VAR "Devel::QuickCover::CONFIG"
-#define QC_CONFIG_OUTPUT_DIR "output_directory"
+#define QC_PACKAGE                 "Devel::QuickCover"
+#define QC_CONFIG_VAR QC_PACKAGE   "::CONFIG"
+#define QC_METADATA_VAR QC_PACKAGE "::METADATA"
+
+#define QC_CONFIG_OUTPUT_DIR       "output_directory"
+#define QC_CONFIG_METADATA         "metadata"
 
 #define REHOOK_PREALLOC_SIZE (1<<12)
 static AV* rehook_ops = 0;
@@ -27,11 +31,12 @@ int enabled = 0;
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
 static const char *output_directory(pTHX);
+static void dump_metadata(pTHX_ FILE* fp);
 
 static void qc_install(pTHX)
 {
     if (PL_ppaddr[OP_NEXTSTATE] == qc_nextstate) {
-        die("QuickCover internal error, exiting: qc_install called again");
+        die("%s: internal error, exiting: qc_install called again", QC_PACKAGE);
     }
 
     nextstate_orig = PL_ppaddr[OP_NEXTSTATE];
@@ -128,9 +133,8 @@ static void qc_dump(pTHX_ CoverList *cover)
                 now.tm_year + 1900, now.tm_mon + 1, now.tm_mday);
         fprintf(fp, "\"time\":\"%02d:%02d:%02d\",",
                 now.tm_hour, now.tm_min, now.tm_sec);
-        fprintf(fp, "\"gonzo\":\"rules\",");
 
-        /* qc_dump_hash(aTHX_ "global", global_args, fp); */
+        dump_metadata(aTHX_ fp);
 
         cover_dump(cover, fp);
 
@@ -150,7 +154,8 @@ static const char *output_directory(pTHX)
 
     qc_config = get_hv(QC_CONFIG_VAR, 0);
     if (!qc_config) {
-        die("Internal error, exiting: Devel::QuickCover::CONFIG must exist");
+        die("%s: Internal error, exiting: %s must exist",
+            QC_PACKAGE, QC_CONFIG_VAR);
     }
     val = hv_fetch(qc_config, QC_CONFIG_OUTPUT_DIR,
                    sizeof(QC_CONFIG_OUTPUT_DIR) - 1, 0);
@@ -160,13 +165,29 @@ static const char *output_directory(pTHX)
     return SvPV_const(*val, len);
 }
 
-static void patch_ppaddr(AV *ops, Perl_ppaddr_t ppaddr)
+static void dump_metadata(pTHX_ FILE* fp)
+{
+    HV* qc_metadata = 0;
+
+    qc_metadata = get_hv(QC_METADATA_VAR, 0);
+    if (!qc_metadata) {
+        die("%s: Internal error, exiting: %s must exist",
+            QC_PACKAGE, QC_METADATA_VAR);
+    }
+
+    fprintf(fp, "\"%s\":", QC_CONFIG_METADATA);
+    dump_hash(aTHX_ qc_metadata, fp);
+    fprintf(fp, ",");
+}
+
+static void patch_ppaddr(pTHX_ AV *ops, Perl_ppaddr_t ppaddr)
 {
     I32 i;
     for (i=0; i<=av_top_index(ops); i++) {
         ((OP*)(*av_fetch(ops, i, 0)))->op_ppaddr = ppaddr;
     }
 }
+
 
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
 PROTOTYPES: DISABLE
@@ -184,7 +205,8 @@ start()
 CODE:
     GLOG(("@@@ start()"));
     if (enabled) {
-        croak("Devel::QuickCover::end() must be called before calling Devel::Quickcover::start() again.");
+        croak("%s::end() must be called before calling %s::start() again",
+              QC_PACKAGE, QC_PACKAGE);
     }
 
     enabled = 1;
@@ -194,15 +216,12 @@ end()
 CODE:
     GLOG(("@@@ end()"));
     if (!enabled) {
-        croak("Devel::QuickCover::start() must be called before calling Devel::Quickcover::end()");
-    } else {
-        enabled=0;
-        qc_dump(cover);
-        cover_destroy(&cover);
-        patch_ppaddr(rehook_ops, qc_nextstate);
-        av_clear(rehook_ops);
+        croak("%s::start() must be called before calling %s::end()",
+              QC_PACKAGE, QC_PACKAGE);
     }
 
-    enabled = 0;
+    enabled=0;
     qc_dump(aTHX_ cover);
     cover_destroy(&cover);
+    patch_ppaddr(aTHX_ rehook_ops, qc_nextstate);
+    av_clear(rehook_ops);

@@ -15,6 +15,8 @@ my %DEFAULT_CONFIG = (
 );
 our %CONFIG;
 
+our %METADATA;
+
 sub import {
     my ($class, @opts) = @_;
 
@@ -38,7 +40,9 @@ sub import {
 }
 
 sub add_metadata {
-    die "not implemented";
+    my (@data) = @_;
+
+    %METADATA = @data;
 }
 
 END {
