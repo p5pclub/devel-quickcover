@@ -97,7 +97,7 @@ void cover_dump(CoverList* cover, FILE* fp) {
     if (ncount++) {
       fprintf(fp, ",");
     }
-    fprintf(fp, "\"%s\":[",
+    fprintf(fp, "\"%s\":{",
             node->file);
     for (j = 0; j < node->bmax; ++j) {
       if (BIT_IS_ON(node->lines, j)) {
@@ -105,10 +105,10 @@ void cover_dump(CoverList* cover, FILE* fp) {
         if (lcount++) {
           fprintf(fp, ",");
         }
-        fprintf(fp, "{\"%d\":%d}", j+1, 1);
+        fprintf(fp, "\"%d\":%d", j+1, 1);
       }
     }
-    fprintf(fp, "]");
+    fprintf(fp, "}");
   }
   fprintf(fp, "}");
 }
