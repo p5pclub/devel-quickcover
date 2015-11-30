@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 
+use JSON qw(encode_json decode_json);
 use Sereal qw(encode_sereal decode_sereal);
 use File::Slurp qw(read_file write_file);
 use Data::Dumper;
@@ -105,33 +106,28 @@ sub process_file {
     my ($file, $data, $changes) = @_;
 
     printf("Processing file %s... ", $file);
-    my $lines;
-    if (!open($lines, '<', $file)) {
-        printf("Could not read file [%s]\n", $file);
+    my $json = read_file($file);
+    if (!$json) {
+        printf("Got no JSON data from file [%s]\n", $file);
         return;
     }
 
-    my $name;
-    while (my $line = <$lines>)  {
-        chomp($line);
+    my $decoded = JSON::decode_json($json);
+    if (!$decoded) {
+        printf("Could not JSON-decode data for file [%s]\n", $file);
+        return;
+    }
 
-        # Skip comment and empty lines
-        next if ($line =~ m/^[ \t]*(#|$)/);
-
-        my @fields = split(' ', $line);
-        if ($fields[0] == 1) {
-            # Line contains file name
-            $name = $fields[2];
-        }
-        elsif ($fields[0] == 2) {
-            # Line contains covered line number
-            next if !$name;
-            my $num = $fields[1];
-            ++$data->{$name}->{$num};
-            ++$$changes;
+    for my $name (keys %{$decoded->{files}}) {
+        my $lines = $decoded->{files}{$name};
+        for my $line (@$lines) {
+            for my $number (keys %$line) {
+                $data->{$name}->{$number} += $line->{$number};
+                ++$$changes;
+            }
         }
     }
-    close($lines);
+
     unlink($file);
     printf("Done\n");
 }
