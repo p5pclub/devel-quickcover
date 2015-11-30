@@ -1,14 +1,14 @@
 
 sub used {
-    my $a = 1;
-    if (1) {
+    my $a = 1;  # YES
+    if (1) {    # YES
         $a = 2;
     }
-    return $a;
+    return $a;  # YES
 }
 
 sub unused {
     return 5;
 }
 
-used();
+used();         # YES

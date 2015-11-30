@@ -40,3 +40,4 @@ devel-quickcover*/
 *.bs
 *.swp
 quickcover.c
+cover_db
