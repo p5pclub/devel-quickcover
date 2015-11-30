@@ -39,7 +39,7 @@ sub import {
     }
 }
 
-sub add_metadata {
+sub set_metadata {
     my (@data) = @_;
 
     %METADATA = @data;
