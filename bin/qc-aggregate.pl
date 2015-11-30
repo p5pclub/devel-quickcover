@@ -1,9 +1,9 @@
 use strict;
 use warnings;
 
-use JSON qw(encode_json decode_json);
-use Sereal qw(encode_sereal decode_sereal);
-use File::Slurp qw(read_file write_file);
+use JSON        qw(encode_json   decode_json);
+use Sereal      qw(encode_sereal decode_sereal);
+use File::Slurp qw(read_file     write_file);
 use Data::Dumper;
 
 my $QC_DATABASE   = 'qc.dat';
