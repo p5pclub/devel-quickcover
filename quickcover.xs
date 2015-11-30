@@ -9,6 +9,7 @@
 #include <time.h>
 #include "glog.h"
 #include "cover.h"
+#include "util.h"
 
 #define QC_PREFIX    "QC"
 #define QC_EXTENSION ".txt"
@@ -64,7 +65,7 @@ static void qc_dump(pTHX_ CoverList *cover)
 
     assert(cover);
 
-    time_t t = time(0);
+    time_t t = 0;
     FILE* fp = 0;
     const char *dir = 0;
     char base[1024];
@@ -81,6 +82,7 @@ static void qc_dump(pTHX_ CoverList *cover)
      * If current time is different from last time (seconds
      * resolution), reset file suffix counter to zero.
      */
+    t = time(0);
     if (last != t) {
         last = t;
         count = 0;
