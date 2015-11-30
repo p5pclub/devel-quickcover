@@ -36,7 +36,7 @@ CoverList* cover_create(void);
 
 /*
  * Destroy a CoverList object.
- * After freeing the CoverList we assign NULL to cover
+ * After freeing the CoverList we assign NULL to cover.
  */
 void cover_destroy(CoverList** cover);
 
@@ -47,10 +47,9 @@ void cover_destroy(CoverList** cover);
 CoverNode* cover_add(CoverList* cover, const char* file, int line);
 
 /*
- * Dump all data to a given file stream; if stamp is given, use it as the
- * "current timestamp" for the dump.
+ * Dump all data to a given file stream.
  */
-void cover_dump(CoverList* cover, FILE* fp, struct tm* stamp);
+void cover_dump(CoverList* cover, FILE* fp);
 
 
 #endif

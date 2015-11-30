@@ -120,7 +120,19 @@ static void qc_dump(pTHX_ CoverList *cover)
     if (!fp) {
         GLOG(("qc_dump: could not create dump file [%s]", tmp));
     } else {
-        cover_dump(cover, fp, &now);
+        fprintf(fp, "{");
+
+        fprintf(fp, "\"date\":\"%04d-%02d-%02d\",",
+                now.tm_year + 1900, now.tm_mon + 1, now.tm_mday);
+        fprintf(fp, "\"time\":\"%02d:%02d:%02d\",",
+                now.tm_hour, now.tm_min, now.tm_sec);
+        fprintf(fp, "\"gonzo\":\"rules\",");
+
+        /* qc_dump_hash(aTHX_ "global", global_args, fp); */
+
+        cover_dump(cover, fp);
+
+        fprintf(fp, "}");
         fclose(fp);
         rename(tmp, txt);
     }
