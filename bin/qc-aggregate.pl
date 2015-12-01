@@ -120,11 +120,9 @@ sub process_file {
 
     for my $name (keys %{$decoded->{files}}) {
         my $lines = $decoded->{files}{$name};
-        for my $line (@$lines) {
-            for my $number (keys %$line) {
-                $data->{$name}->{$number} += $line->{$number};
-                ++$$changes;
-            }
+        for my $line (keys %$lines) {
+            $data->{$name}->{$line} += $lines->{$line};
+            ++$$changes;
         }
     }
 
