@@ -5,9 +5,15 @@ WriteMakefile(
     VERSION_FROM   => 'lib/Devel/QuickCover.pm',
     ABSTRACT_FROM  => 'lib/Devel/QuickCover.pm',
     PREREQ_PM      => {
-        'Test::More'          => 0,
         'Exporter'            => '5.57',
         'XSLoader'            => 0,
+        'JSON::XS'            => 0,
+        'File::Slurp'         => 0,
+    },
+    TEST_REQUIRES  => {
+        'Test::More'            => 0,
+        'Test::Builder::Module' => 0,
+        'File::Temp'            => 0,
     },
     AUTHOR         => 'Gonzalo Diethelm (gonzus@cpan.org)',
     LIBS           => [''],
