@@ -1,13 +1,9 @@
-use strict;
-use warnings;
 
-use lib './t/lib';
-use Test::QuickCover qw (read_report get_coverage_from_report parse_fixture);
+use t::lib::Test;
 
 use JSON        qw(encode_json   decode_json);
 use File::Slurp qw(read_file     write_file);
 use File::Temp  qw(tempdir);
-use Test::More;
 
 my $dir;
 BEGIN {

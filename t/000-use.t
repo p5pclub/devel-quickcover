@@ -1,7 +1,6 @@
 #!perl
-use strict;
-use warnings;
-use Test::More;
+
+use t::lib::Test;
 
 BEGIN {
     use_ok('Devel::QuickCover');

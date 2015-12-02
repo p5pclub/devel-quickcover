@@ -1,12 +1,7 @@
 
-use strict;
-use warnings;
-
-use lib './t/lib';
-use Test::QuickCover qw (read_report get_coverage_from_report parse_fixture);
+use t::lib::Test;
 
 use File::Temp  qw(tempdir);
-use Test::More;
 
 my $FIXTURES = './fixtures';
 my $dir      = tempdir( "quickcover-test-XXXX", TMPDIR => 1);
