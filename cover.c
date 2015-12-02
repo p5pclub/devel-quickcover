@@ -36,8 +36,7 @@ void cover_destroy(CoverList** cover) {
   CoverNode* node = 0;
 
   assert(cover);
-  if (!*cover)
-      return;
+  assert(*cover);
 
   for (node = (*cover)->head; node != 0; ) {
     CoverNode* tmp = node;
@@ -84,6 +83,8 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
 void cover_dump(CoverList* cover, FILE* fp) {
   CoverNode* node = 0;
   int ncount = 0;
+
+  assert(cover);
 
   /*
    * We output the cover data as elements in a JSON hash

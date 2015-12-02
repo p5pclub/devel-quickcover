@@ -48,8 +48,8 @@ static void qc_install(pTHX)
 }
 
 static OP* qc_nextstate(pTHX) {
-    OP* ret;
-    ret = nextstate_orig(aTHX);
+    OP* ret = nextstate_orig(aTHX);
+
     if (enabled) {
         PL_op->op_ppaddr = nextstate_orig;
         av_push(rehook_ops, (SV*)PL_op);
@@ -60,6 +60,7 @@ static OP* qc_nextstate(pTHX) {
         /* Now do our own nefarious tracking... */
         cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
     }
+
     return ret;
 }
 
@@ -67,8 +68,6 @@ static void qc_dump(pTHX_ CoverList *cover)
 {
     static int count = 0;
     static time_t last = 0;
-
-    assert(cover);
 
     time_t t = 0;
     FILE* fp = 0;
@@ -142,8 +141,6 @@ static void qc_dump(pTHX_ CoverList *cover)
         fclose(fp);
         rename(tmp, txt);
     }
-
-    GLOG(("qc_dump: deleting cover data [%p]", cover));
 }
 
 static const char *output_directory(pTHX)
@@ -183,7 +180,7 @@ static void dump_metadata(pTHX_ FILE* fp)
 static void patch_ppaddr(pTHX_ AV *ops, Perl_ppaddr_t ppaddr)
 {
     I32 i;
-    for (i=0; i<=av_top_index(ops); i++) {
+    for (i=0; i <= av_top_index(ops); ++i) {
         ((OP*)(*av_fetch(ops, i, 0)))->op_ppaddr = ppaddr;
     }
 }
