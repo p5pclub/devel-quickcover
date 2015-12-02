@@ -6,9 +6,25 @@ glog.h
 gmem.c
 gmem.h
 ppport.h
+util.c
+util.h
 
 lib/Devel/QuickCover.pm
+
 bin/qc-aggregate.pl
+bin/qc-html.pl
+
+t/000-use.t
+t/001-basic.t
+t/002-fixtures.t
+t/lib/Test/QuickCover.pm
+
+fixtures/cover-01.pl
+fixtures/cover-02.pl
+fixtures/cover-03.pl
+fixtures/cover-04.pl
+
+benchmark/benchmark.pl
 
 Changes
 LICENSE
