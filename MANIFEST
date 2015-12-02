@@ -17,7 +17,7 @@ bin/qc-html.pl
 t/000-use.t
 t/001-basic.t
 t/002-fixtures.t
-t/lib/Test/QuickCover.pm
+t/lib/Test.pm
 
 fixtures/cover-01.pl
 fixtures/cover-02.pl
