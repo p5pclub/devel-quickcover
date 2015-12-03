@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 #include "glog.h"
 #include "gmem.h"
@@ -10,6 +11,8 @@
 
 /* How big will the initial bit set allocation be. */
 #define COVER_INITIAL_SIZE 8   /* 8 * CHAR_BIT = 64 bits (lines) */
+
+#define COVER_LIST_INITIAL_SIZE 8   /* 8 files in the hash */
 
 /* Handle an array of unsigned char as a bit set. */
 #define BIT_TURN_ON(data, bit)   data[bit/CHAR_BIT] |=  (1 << (bit%CHAR_BIT))
@@ -24,65 +27,66 @@
 /* Add a line to a given CoverNode; grow its bit set if necessary. */
 static void cover_node_set_line(CoverNode* node, int line);
 
+/* Add a node to the list of files */
+static CoverNode* add_get_node(CoverList *cover, const char *file);
+
 CoverList* cover_create(void) {
   CoverList* cover;
   GMEM_NEW(cover, CoverList*, sizeof(CoverList));
-  cover->head = 0;
-  cover->size = 0;
+
+  cover->used = 0;
+  cover->size = COVER_LIST_INITIAL_SIZE;
+  GMEM_NEW(cover->list, CoverNode**, COVER_LIST_INITIAL_SIZE * sizeof(CoverNode *));
+  memset(cover->list, 0, COVER_LIST_INITIAL_SIZE * sizeof(CoverNode *));
+
   return cover;
 }
 
 void cover_destroy(CoverList** cover) {
+  int i;
   CoverNode* node = 0;
 
-  assert(cover);
+    assert(cover);
   assert(*cover);
 
-  for (node = (*cover)->head; node != 0; ) {
+  for (i = 0; i < (*cover)->size ; i++) {
+    node = (*cover)->list[i];
+    if (!node) {
+      continue;
+    }
     CoverNode* tmp = node;
     GLOG(("Destroying set for [%s], %d/%d elements", node->file, node->bcnt, node->alen*CHAR_BIT));
-    node = node->next;
     GLOG(("Destroying string [%s]", tmp->file));
     GMEM_DELSTR(tmp->file, -1);
     GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen));
     GMEM_DELARR(tmp->lines, unsigned char*, tmp->alen, sizeof(unsigned char*));
     GLOG(("Destroying node [%p]", tmp));
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
+    (*cover)->list[i] = 0;
   }
+  GMEM_DEL((*cover)->list, CoverNode**, (*cover)->size * sizeof(CoverNode *));
   GLOG(("Destroying cover [%p]", *cover));
   GMEM_DEL(*cover, CoverList*, sizeof(CoverList));
 }
+
 
 CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
 
   assert(cover);
-
-  for (node = cover->head; node != 0; node = node->next) {
-    if (strcmp(node->file, file) == 0) {
-      break;
-    }
-  }
-  if (node == 0) {
-    GMEM_NEW(node, CoverNode*, sizeof(CoverNode));
-    /* TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc. */
-    int l = 0;
-    GMEM_NEWSTR(node->file, file, -1, l);
-    node->lines = 0;
-    node->alen = node->bcnt = node->bmax = 0;
-    node->next = cover->head;
-    cover->head = node;
-    ++cover->size;
-    GLOG(("Adding set for [%s]", node->file));
-  }
+  node = add_get_node(cover, file);
+  GLOG(("Node: %p", node));
+  assert(node);
   cover_node_set_line(node, line);
+
+  GLOG(("Line set: %p", node));
   return node;
 }
 
 
 void cover_dump(CoverList* cover, FILE* fp) {
   CoverNode* node = 0;
-  int ncount = 0;
+  int ncount = 0, i = 0;
 
   assert(cover);
 
@@ -91,9 +95,13 @@ void cover_dump(CoverList* cover, FILE* fp) {
    * that must be opened / closed outside this routine.
    */
   fprintf(fp, "\"files\":{");
-  for (node = cover->head; node != 0; node = node->next) {
+  for (i = 0 ; i < cover->size; i++) {
     int j = 0;
     int lcount = 0;
+    node = cover->list[i];
+    if (!node) {
+      continue;
+    }
 
     if (ncount++) {
       fprintf(fp, ",");
@@ -132,7 +140,7 @@ static void cover_node_set_line(CoverNode* node, int line) {
       size *= 2;
     }
 
-    GLOG(("Growing map for [%s] from %d to %d", node->file, node->alen, size));
+    GLOG(("Growing map for [%s] from %d to %d - %p", node->file, node->alen, size, node->lines));
 
     /* realloc will grow the data and keep all current values... */
     GMEM_REALLOC(node->lines, unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
@@ -151,4 +159,44 @@ static void cover_node_set_line(CoverNode* node, int line) {
     ++node->bcnt;
     BIT_TURN_ON(node->lines, line);
   }
+}
+
+
+static CoverNode* add_get_node(CoverList *cover, const char *file) {
+  U32 hash, pos;
+  CoverNode *node = NULL;
+  ssize_t len = strlen(file);
+
+  if (3 * cover->used > 2 * cover->size) {
+    GMEM_REALLOC(cover->list, CoverNode **, cover->size, cover->size * 2);
+    cover->size *= 2;
+  }
+
+  PERL_HASH(hash, file, len);
+  pos = hash % cover->size;
+  GLOG( ("POS: %u, HASH: %u, size: %d, used: %d", pos, hash, cover->size, cover->used) );
+
+  while (cover->list[pos] && (hash != cover->list[pos]->hash) &&
+         strcmp(file, cover->list[hash]->file)) {
+    pos = (pos + 1) % cover->size;
+  }
+
+  if (cover->list[pos]) {
+    return cover->list[pos];
+  }
+
+  GMEM_NEW(node, CoverNode*, sizeof(CoverNode));
+  /* TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc. */
+  int l = 0;
+  GMEM_NEWSTR(node->file, file, -1, l);
+  node->lines = NULL;
+  node->hash = hash;
+  node->alen = node->bcnt = node->bmax = 0;
+
+  GLOG(( "xxx" ));
+  ++cover->used;
+  cover->list[pos] = node;
+
+  GLOG(("Adding set for [%s]", node->file));
+  return node;
 }

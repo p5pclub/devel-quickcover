@@ -9,11 +9,17 @@
 /* Needed for FILE declaration. */
 #include <stdio.h>
 
+/* for U32 */
+#include  <EXTERN.h>
+#include  <perl.h>
+#include  "ppport.h"
+
 /*
  * We will have one of these per file, stored in a singly linked list.
  */
 typedef struct CoverNode {
   char* file;                 /* file name */
+  U32            hash;        /* hash of the file_name */
   unsigned char* lines;       /* bit set with the "covered lines" */
   unsigned short alen;        /* current length of lines array */
   unsigned short bmax;        /* value of largest bit (line) seen so far */
@@ -25,8 +31,9 @@ typedef struct CoverNode {
  * A placeholder for the linked list with file coverage information.
  */
 typedef struct CoverList {
-  CoverNode* head;            /* head of file list */
-  unsigned int size;          /* current size of list */
+  CoverNode **list;
+  unsigned int used;
+  unsigned int size;
 } CoverList;
 
 /*
