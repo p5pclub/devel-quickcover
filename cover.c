@@ -75,11 +75,9 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
 
   assert(cover);
   node = add_get_node(cover, file);
-  GLOG(("Node: %p", node));
   assert(node);
   cover_node_set_line(node, line);
 
-  GLOG(("Line set: %p", node));
   return node;
 }
 
@@ -193,7 +191,6 @@ static CoverNode* add_get_node(CoverList *cover, const char *file) {
   node->hash = hash;
   node->alen = node->bcnt = node->bmax = 0;
 
-  GLOG(( "xxx" ));
   ++cover->used;
   cover->list[pos] = node;
 
