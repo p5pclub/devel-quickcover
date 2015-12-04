@@ -89,6 +89,7 @@ information for C<bar()>.
        Devel::QuickCover::end();
        baz();
 
+For now, we support calling start() only once.
 
 =head1 DESCRIPTION
 

@@ -21,9 +21,6 @@
 #define QC_CONFIG_OUTPUT_DIR       "output_directory"
 #define QC_CONFIG_METADATA         "metadata"
 
-#define REHOOK_PREALLOC_SIZE (1<<12)
-static AV* rehook_ops = 0;
-
 static Perl_ppaddr_t nextstate_orig = 0;
 static CoverList* cover = 0;
 int enabled = 0;
@@ -52,7 +49,6 @@ static OP* qc_nextstate(pTHX) {
 
     if (enabled) {
         PL_op->op_ppaddr = nextstate_orig;
-        av_push(rehook_ops, (SV*)PL_op);
         if (!cover) {
             cover = cover_create();
             GLOG(("qc_nextstate: created cover data is [%p]", cover));
@@ -177,14 +173,6 @@ static void dump_metadata(pTHX_ FILE* fp)
     fprintf(fp, ",");
 }
 
-static void patch_ppaddr(pTHX_ AV *ops, Perl_ppaddr_t ppaddr)
-{
-    I32 i;
-    for (i=0; i <= av_top_index(ops); ++i) {
-        ((OP*)(*av_fetch(ops, i, 0)))->op_ppaddr = ppaddr;
-    }
-}
-
 
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
 PROTOTYPES: DISABLE
@@ -192,9 +180,6 @@ PROTOTYPES: DISABLE
 #################################################################
 
 BOOT:
-    rehook_ops = newAV();
-    av_extend(rehook_ops,REHOOK_PREALLOC_SIZE);
-    AvREAL_off(rehook_ops);
     qc_install(aTHX);
 
 void
@@ -202,8 +187,7 @@ start()
 CODE:
     GLOG(("@@@ start()"));
     if (enabled) {
-        croak("%s::end() must be called before calling %s::start() again",
-              QC_PACKAGE, QC_PACKAGE);
+        croak("%s::start() can be called only once.", QC_PACKAGE);
     }
 
     enabled = 1;
@@ -220,5 +204,3 @@ CODE:
     enabled=0;
     qc_dump(aTHX_ cover);
     cover_destroy(&cover);
-    patch_ppaddr(aTHX_ rehook_ops, qc_nextstate);
-    av_clear(rehook_ops);
