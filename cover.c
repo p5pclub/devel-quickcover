@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <time.h>
 #include "glog.h"
 #include "gmem.h"
@@ -24,6 +23,11 @@
 #define COVER_TAG_FILE_INFO 1
 #define COVER_TAG_LINE_INFO 2
 
+/* Count of the hash collisions in the hash table */
+#ifdef GLOG_SHOW
+static unsigned int max_collisions = 0;
+#endif
+
 /* Add a line to a given CoverNode; grow its bit set if necessary. */
 static void cover_node_set_line(CoverNode* node, int line);
 
@@ -36,8 +40,7 @@ CoverList* cover_create(void) {
 
   cover->used = 0;
   cover->size = COVER_LIST_INITIAL_SIZE;
-  GMEM_NEW(cover->list, CoverNode**, COVER_LIST_INITIAL_SIZE * sizeof(CoverNode *));
-  memset(cover->list, 0, COVER_LIST_INITIAL_SIZE * sizeof(CoverNode *));
+  GMEM_NEWARR(cover->list, CoverNode**, COVER_LIST_INITIAL_SIZE, sizeof(CoverNode *));
 
   return cover;
 }
@@ -46,7 +49,7 @@ void cover_destroy(CoverList** cover) {
   int i;
   CoverNode* node = 0;
 
-    assert(cover);
+  assert(cover);
   assert(*cover);
 
   for (i = 0; i < (*cover)->size ; i++) {
@@ -64,8 +67,8 @@ void cover_destroy(CoverList** cover) {
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
     (*cover)->list[i] = 0;
   }
-  GMEM_DEL((*cover)->list, CoverNode**, (*cover)->size * sizeof(CoverNode *));
-  GLOG(("Destroying cover [%p]", *cover));
+  GLOG(("Destroying cover [%p]. Max run %d. Used: %d", *cover, max_collisions, (*cover)->used));
+  GMEM_DELARR((*cover)->list, CoverNode**, (*cover)->size, sizeof(CoverNode *));
   GMEM_DEL(*cover, CoverList*, sizeof(CoverList));
 }
 
@@ -75,6 +78,7 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
 
   assert(cover);
   node = add_get_node(cover, file);
+
   assert(node);
   cover_node_set_line(node, line);
 
@@ -159,25 +163,55 @@ static void cover_node_set_line(CoverNode* node, int line) {
   }
 }
 
+static U32 find_pos(CoverNode **where, U32 hash, const char *file, int size) {
+  U32 pos = hash % size;
+
+#ifdef GLOG_SHOW
+  unsigned int run = 0;
+#endif
+
+  while (where[pos] && (hash != where[pos]->hash) &&
+         strcmp(file, where[pos]->file)) {
+    pos = (pos + 1) % size;
+
+#ifdef GLOG_SHOW
+    run ++;
+#endif
+
+  }
+
+#ifdef GLOG_SHOW
+  if (run > max_collisions) {
+    max_collisions = run;
+  }
+#endif
+
+  return pos;
+}
 
 static CoverNode* add_get_node(CoverList *cover, const char *file) {
-  U32 hash, pos;
-  CoverNode *node = NULL;
+  U32 hash, pos, i;
+  CoverNode *node = NULL, **new_list=NULL;
   ssize_t len = strlen(file);
 
   if (3 * cover->used > 2 * cover->size) {
-    GMEM_REALLOC(cover->list, CoverNode **, cover->size, cover->size * 2);
+    GMEM_NEWARR(new_list, CoverNode**, cover->size * 2, sizeof(CoverNode *));
+    for (i = 0; i < cover->size; i++) {
+      if (!cover->list[i]) {
+        continue;
+      }
+      pos = find_pos(new_list, cover->list[i]->hash, cover->list[i]->file, cover->size * 2);
+      new_list[pos] = cover->list[i];
+    }
+
+    GMEM_DELARR(cover->list, CoverNode**, cover->size, sizeof(CoverNode *));
+    cover->list = new_list;
     cover->size *= 2;
   }
 
   PERL_HASH(hash, file, len);
-  pos = hash % cover->size;
-  GLOG( ("POS: %u, HASH: %u, size: %d, used: %d", pos, hash, cover->size, cover->used) );
 
-  while (cover->list[pos] && (hash != cover->list[pos]->hash) &&
-         strcmp(file, cover->list[hash]->file)) {
-    pos = (pos + 1) % cover->size;
-  }
+  pos = find_pos(cover->list, hash, file, cover->size);
 
   if (cover->list[pos]) {
     return cover->list[pos];
