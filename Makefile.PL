@@ -20,6 +20,7 @@ WriteMakefile(
 #    DEFINE         => '-DGMEM_CHECK',
 #    DEFINE         => '-DGLOG_SHOW',
 #    DEFINE         => '-DGMEM_CHECK=1 -DGLOG_SHOW',
+#    OPTIMIZE       => '-g',
     INC            => '-I.',
     OBJECT         => '$(O_FILES)',
 );
