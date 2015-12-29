@@ -39,5 +39,6 @@ devel-quickcover*/
 *.o
 *.bs
 *.swp
+*.tar.gz
 quickcover.c
 cover_db
