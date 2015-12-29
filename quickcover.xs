@@ -15,8 +15,8 @@
 #define QC_EXTENSION ".txt"
 
 #define QC_PACKAGE                 "Devel::QuickCover"
-#define QC_CONFIG_VAR QC_PACKAGE   "::CONFIG"
-#define QC_METADATA_VAR QC_PACKAGE "::METADATA"
+#define QC_CONFIG_VAR              QC_PACKAGE "::CONFIG"
+#define QC_METADATA_VAR            QC_PACKAGE "::METADATA"
 
 #define QC_CONFIG_OUTPUT_DIR       "output_directory"
 #define QC_CONFIG_METADATA         "metadata"
@@ -27,7 +27,7 @@ int enabled = 0;
 
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
-static const char *output_directory(pTHX);
+static const char* output_directory(pTHX);
 static void dump_metadata(pTHX_ FILE* fp);
 
 static void qc_install(pTHX)
@@ -60,23 +60,18 @@ static OP* qc_nextstate(pTHX) {
     return ret;
 }
 
-static void qc_dump(pTHX_ CoverList *cover)
+static void qc_dump(pTHX_ CoverList* cover)
 {
     static int count = 0;
     static time_t last = 0;
 
     time_t t = 0;
     FILE* fp = 0;
-    const char *dir = 0;
+    const char* dir = 0;
     char base[1024];
     char tmp[1024];
     char txt[1024];
     struct tm now;
-
-    if (!cover) {
-        GLOG(("qc_dump: no cover data"));
-        return;
-    }
 
     /*
      * If current time is different from last time (seconds
@@ -139,7 +134,7 @@ static void qc_dump(pTHX_ CoverList *cover)
     }
 }
 
-static const char *output_directory(pTHX)
+static const char* output_directory(pTHX)
 {
     HV* qc_config = 0;
     SV** val = 0;
@@ -201,6 +196,9 @@ CODE:
               QC_PACKAGE, QC_PACKAGE);
     }
 
-    enabled=0;
-    qc_dump(aTHX_ cover);
-    cover_destroy(&cover);
+    enabled = 0;
+    if (cover) {
+    	qc_dump(aTHX_ cover);
+    	cover_destroy(&cover);
+    }
+
