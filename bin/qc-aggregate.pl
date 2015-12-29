@@ -1,3 +1,7 @@
+#!/usr/bin/perl
+
+# Aggregate a bunch of cover files into a Sereal "database".
+
 use strict;
 use warnings;
 

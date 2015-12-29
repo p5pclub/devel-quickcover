@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 
+# Generate a Devel::Cover-compatible report file from cover data.
+
 use Data::Dumper;
 use Digest::MD5 qw(md5_hex);
 use File::Slurp qw(read_file write_file);
@@ -16,6 +18,8 @@ my $STRUCTURE     = "$COVERDB/structure/";
 my $RUNS          = "$COVERDB/runs/";
 
 my $JSON          = JSON::XS->new->utf8;
+
+exit main();
 
 sub main() {
     my $data = load_data($QC_DATABASE);
@@ -136,5 +140,3 @@ sub write_structure {
     write_file( "$STRUCTURE/$md5", { binmode => ':raw' }, coverdb_encode( $structure ));
     return $statement;
 }
-
-exit main();
