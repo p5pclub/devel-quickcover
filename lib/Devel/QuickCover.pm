@@ -98,7 +98,7 @@ in the coverage information.
     Devel::QuickCover::end();
     baz();
 
-For now, we support calling start() only once.
+For now, we support calling C<start()> only once.
 
 =head1 AUTHORS
 
