@@ -1,5 +1,3 @@
-#!perl
-
 use t::lib::Test;
 
 BEGIN {

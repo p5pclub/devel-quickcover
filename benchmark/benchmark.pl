@@ -32,7 +32,10 @@ sub benchmark_file {
         initial_runs         => 100,
     );
 
-    my $normal = ['perl', "./fixtures/$file" ];
+    my $normal = [
+        $^X,
+        "./fixtures/$file",
+    ];
     $bench->add_instances(
         Dumbbench::Instance::Cmd->new(
             name    => $file,
@@ -41,7 +44,7 @@ sub benchmark_file {
     );
 
     my $with_devel_cover = [
-        'perl',
+        $^X,
         '-I./blib/lib',
         '-I./blib/arch/',
         '-MDevel::QuickCover',

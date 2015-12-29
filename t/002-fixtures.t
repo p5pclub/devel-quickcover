@@ -1,4 +1,3 @@
-
 use t::lib::Test;
 
 use File::Temp  qw(tempdir);
@@ -9,7 +8,7 @@ my $dir      = tempdir( "quickcover-test-XXXX", TMPDIR => 1);
 sub test_fixture {
     my $file = shift;
     my @cmd = (
-        'perl',
+        $^X,
         '-I./blib/lib',
         '-I./blib/arch/',
         "-MDevel::QuickCover=output_directory,$dir",
