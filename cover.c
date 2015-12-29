@@ -18,11 +18,6 @@
 #define BIT_TURN_OFF(data, bit)  data[bit/CHAR_BIT] &= ~(1 << (bit%CHAR_BIT))
 #define BIT_IS_ON(data, bit)    (data[bit/CHAR_BIT] &   (1 << (bit%CHAR_BIT)))
 
-/* Line tags in generated dump. */
-#define COVER_TAG_SUMMARY   0
-#define COVER_TAG_FILE_INFO 1
-#define COVER_TAG_LINE_INFO 2
-
 /* Count of the hash collisions in the hash table */
 #ifdef GLOG_SHOW
 static unsigned int max_collisions = 0;
@@ -57,6 +52,7 @@ void cover_destroy(CoverList** cover) {
     if (!node) {
       continue;
     }
+
     CoverNode* tmp = node;
     GLOG(("Destroying set for [%s], %d/%d elements", node->file, node->bcnt, node->alen*CHAR_BIT));
     GLOG(("Destroying string [%s]", tmp->file));
@@ -67,11 +63,11 @@ void cover_destroy(CoverList** cover) {
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
     (*cover)->list[i] = 0;
   }
+
   GLOG(("Destroying cover [%p]. Max run %d. Used: %d", *cover, max_collisions, (*cover)->used));
   GMEM_DELARR((*cover)->list, CoverNode**, (*cover)->size, sizeof(CoverNode *));
   GMEM_DEL(*cover, CoverList*, sizeof(CoverList));
 }
-
 
 CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
@@ -85,7 +81,6 @@ CoverNode* cover_add(CoverList* cover, const char* file, int line) {
   return node;
 }
 
-
 void cover_dump(CoverList* cover, FILE* fp) {
   CoverNode* node = 0;
   int ncount = 0, i = 0;
@@ -94,7 +89,7 @@ void cover_dump(CoverList* cover, FILE* fp) {
 
   /*
    * We output the cover data as elements in a JSON hash
-   * that must be opened / closed outside this routine.
+   * that must be opened / closed OUTSIDE this routine.
    */
   fprintf(fp, "\"files\":{");
   for (i = 0 ; i < cover->size; i++) {
@@ -170,14 +165,14 @@ static U32 find_pos(CoverNode **where, U32 hash, const char *file, int size) {
   unsigned int run = 0;
 #endif
 
-  while (where[pos] && (hash != where[pos]->hash) &&
-         strcmp(file, where[pos]->file)) {
+  while (where[pos] &&
+         hash != where[pos]->hash &&
+         strcmp(file, where[pos]->file) != 0) {
     pos = (pos + 1) % size;
 
 #ifdef GLOG_SHOW
-    run ++;
+    ++run;
 #endif
-
   }
 
 #ifdef GLOG_SHOW
@@ -191,9 +186,11 @@ static U32 find_pos(CoverNode **where, U32 hash, const char *file, int size) {
 
 static CoverNode* add_get_node(CoverList *cover, const char *file) {
   U32 hash, pos, i;
-  CoverNode *node = NULL, **new_list=NULL;
+  CoverNode *node = NULL, **new_list = NULL;
   ssize_t len = strlen(file);
 
+  /* TODO: comment these magic numbers */
+  /* TODO: move this enlargement code to a separate function */
   if (3 * cover->used > 2 * cover->size) {
     GMEM_NEWARR(new_list, CoverNode**, cover->size * 2, sizeof(CoverNode *));
     for (i = 0; i < cover->size; i++) {
@@ -209,10 +206,10 @@ static CoverNode* add_get_node(CoverList *cover, const char *file) {
     cover->size *= 2;
   }
 
+  /* Compute hash value for file name using Perl's hash function */
   PERL_HASH(hash, file, len);
 
   pos = find_pos(cover->list, hash, file, cover->size);
-
   if (cover->list[pos]) {
     return cover->list[pos];
   }
