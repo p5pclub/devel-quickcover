@@ -81,7 +81,7 @@ static void qc_install(pTHX)
           "              qc_nextstate is [%p]\n",
           nextstate_orig, qc_nextstate));
 
-   Perl_call_atexit(aTHX, exit_called, 0);
+   Perl_call_atexit(aTHX_ exit_called, 0);
 }
 
 static OP* qc_nextstate(pTHX) {
