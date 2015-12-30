@@ -54,12 +54,12 @@ void cover_destroy(CoverList** cover) {
     }
 
     CoverNode* tmp = node;
-    GLOG(("Destroying set for [%s], %d/%d elements", node->file, node->bcnt, node->alen*CHAR_BIT));
-    GLOG(("Destroying string [%s]", tmp->file));
+    /* GLOG(("Destroying set for [%s], %d/%d elements", node->file, node->bcnt, node->alen*CHAR_BIT)); */
+    /* GLOG(("Destroying string [%s]", tmp->file)); */
     GMEM_DELSTR(tmp->file, -1);
-    GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen));
+    /* GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen)); */
     GMEM_DELARR(tmp->lines, unsigned char*, tmp->alen, sizeof(unsigned char*));
-    GLOG(("Destroying node [%p]", tmp));
+    /* GLOG(("Destroying node [%p]", tmp)); */
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
     (*cover)->list[i] = 0;
   }
@@ -152,7 +152,7 @@ static void cover_node_set_line(CoverNode* node, int line) {
   /* if the line was not already registered, do so and keep track of how many */
   /* lines we have seen so far */
   if (! BIT_IS_ON(node->lines, line)) {
-    GLOG(("Adding line %d for [%s]", line, node->file));
+    /* GLOG(("Adding line %d for [%s]", line, node->file)); */
     ++node->bcnt;
     BIT_TURN_ON(node->lines, line);
   }
@@ -225,6 +225,6 @@ static CoverNode* add_get_node(CoverList *cover, const char *file) {
   ++cover->used;
   cover->list[pos] = node;
 
-  GLOG(("Adding set for [%s]", node->file));
+  /* GLOG(("Adding set for [%s]", node->file)); */
   return node;
 }
