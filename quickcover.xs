@@ -23,12 +23,50 @@
 
 static Perl_ppaddr_t nextstate_orig = 0;
 static CoverList* cover = 0;
-int enabled = 0;
+static int enabled = 0;
 
+static void qc_initialize(pTHX_ int check);
+static void qc_terminate(pTHX_ int check);
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
+static void qc_dump(pTHX_ CoverList* cover);
+
 static const char* output_directory(pTHX);
 static void dump_metadata(pTHX_ FILE* fp);
+
+static void qc_initialize(pTHX_ int check)
+{
+    if (enabled) {
+        if (check) {
+            croak("%s::start() can be called only once.", QC_PACKAGE);
+        }
+        return;
+    }
+
+    enabled = 1;
+}
+
+static void qc_terminate(pTHX_ int check)
+{
+    if (!enabled) {
+        if (check) {
+            croak("%s::start() must be called before calling %s::end()",
+                  QC_PACKAGE, QC_PACKAGE);
+        }
+        return;
+    }
+
+    enabled = 0;
+    if (cover) {
+        qc_dump(aTHX_ cover);
+        cover_destroy(&cover);
+    }
+}
+
+static void exit_called(pTHX_ void* arg)
+{
+    qc_terminate(aTHX_ 0);
+}
 
 static void qc_install(pTHX)
 {
@@ -42,6 +80,8 @@ static void qc_install(pTHX)
     GLOG(("qc_install: nextstate_orig is [%p]\n"
           "              qc_nextstate is [%p]\n",
           nextstate_orig, qc_nextstate));
+
+   Perl_call_atexit(aTHX, exit_called, 0);
 }
 
 static OP* qc_nextstate(pTHX) {
@@ -175,30 +215,17 @@ PROTOTYPES: DISABLE
 #################################################################
 
 BOOT:
+    GLOG(("@@@ BOOT"));
     qc_install(aTHX);
 
 void
 start()
 CODE:
     GLOG(("@@@ start()"));
-    if (enabled) {
-        croak("%s::start() can be called only once.", QC_PACKAGE);
-    }
-
-    enabled = 1;
+    qc_initialize(aTHX_ 1);
 
 void
 end()
 CODE:
     GLOG(("@@@ end()"));
-    if (!enabled) {
-        croak("%s::start() must be called before calling %s::end()",
-              QC_PACKAGE, QC_PACKAGE);
-    }
-
-    enabled = 0;
-    if (cover) {
-    	qc_dump(aTHX_ cover);
-    	cover_destroy(&cover);
-    }
-
+    qc_terminate(aTHX_ 1);
