@@ -40,15 +40,14 @@ CoverList* cover_create(void) {
   return cover;
 }
 
-void cover_destroy(CoverList** cover) {
+void cover_destroy(CoverList* cover) {
   int i;
   CoverNode* node = 0;
 
   assert(cover);
-  assert(*cover);
 
-  for (i = 0; i < (*cover)->size ; i++) {
-    node = (*cover)->list[i];
+  for (i = 0; i < cover->size ; i++) {
+    node = cover->list[i];
     if (!node) {
       continue;
     }
@@ -61,12 +60,12 @@ void cover_destroy(CoverList** cover) {
     GMEM_DELARR(tmp->lines, unsigned char*, tmp->alen, sizeof(unsigned char*));
     /* GLOG(("Destroying node [%p]", tmp)); */
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
-    (*cover)->list[i] = 0;
+    cover->list[i] = 0;
   }
 
-  GLOG(("Destroying cover [%p]. Max run %d. Used: %d", *cover, max_collisions, (*cover)->used));
-  GMEM_DELARR((*cover)->list, CoverNode**, (*cover)->size, sizeof(CoverNode *));
-  GMEM_DEL(*cover, CoverList*, sizeof(CoverList));
+  GLOG(("Destroying cover [%p]. Max run %d. Used: %d", cover, max_collisions, cover->used));
+  GMEM_DELARR(cover->list, CoverNode**, cover->size, sizeof(CoverNode *));
+  GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
 CoverNode* cover_add(CoverList* cover, const char* file, int line) {
@@ -137,7 +136,7 @@ static void cover_node_set_line(CoverNode* node, int line) {
       size *= 2;
     }
 
-    GLOG(("Growing map for [%s] from %d to %d - %p", node->file, node->alen, size, node->lines));
+    /* GLOG(("Growing map for [%s] from %d to %d - %p", node->file, node->alen, size, node->lines)); */
 
     /* realloc will grow the data and keep all current values... */
     GMEM_REALLOC(node->lines, unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
