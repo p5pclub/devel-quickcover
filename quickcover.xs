@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "glog.h"
+#include "gmem.h"
 #include "cover.h"
 #include "util.h"
 
@@ -24,48 +25,35 @@
 static Perl_ppaddr_t nextstate_orig = 0;
 static CoverList* cover = 0;
 static int enabled = 0;
+static char dir[1024];
+static char data[1024];
 
-static void qc_initialize(pTHX_ int check);
-static void qc_terminate(pTHX_ int check);
+static void qc_init(void);
+static void qc_fini(void);
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
-static void qc_dump(pTHX_ CoverList* cover);
+static void qc_dump(CoverList* cover);
 
-static const char* output_directory(pTHX);
-static void dump_metadata(pTHX_ FILE* fp);
+static void save_output_directory(pTHX);
 
-static void qc_initialize(pTHX_ int check)
+static void qc_init(void)
 {
-    if (enabled) {
-        if (check) {
-            croak("%s::start() can be called only once.", QC_PACKAGE);
-        }
-        return;
-    }
+    atexit(qc_fini);
 
-    enabled = 1;
+    gmem_init();
+    strcpy(dir, "/tmp");
+    data[0] = '\0';
 }
 
-static void qc_terminate(pTHX_ int check)
+static void qc_fini(void)
 {
-    if (!enabled) {
-        if (check) {
-            croak("%s::start() must be called before calling %s::end()",
-                  QC_PACKAGE, QC_PACKAGE);
-        }
-        return;
-    }
-
-    enabled = 0;
     if (cover) {
-        qc_dump(aTHX_ cover);
-        cover_destroy(&cover);
+        qc_dump(cover);
+        cover_destroy(cover);
+        cover = 0;
     }
-}
 
-static void exit_called(pTHX_ void* arg)
-{
-    qc_terminate(aTHX_ 0);
+    gmem_fini();
 }
 
 static void qc_install(pTHX)
@@ -77,11 +65,8 @@ static void qc_install(pTHX)
     nextstate_orig = PL_ppaddr[OP_NEXTSTATE];
     PL_ppaddr[OP_NEXTSTATE] = qc_nextstate;
 
-    GLOG(("qc_install: nextstate_orig is [%p]\n"
-          "              qc_nextstate is [%p]\n",
-          nextstate_orig, qc_nextstate));
-
-   Perl_call_atexit(aTHX_ exit_called, 0);
+    GLOG(("qc_install: nextstate_orig is [%p]", nextstate_orig));
+    GLOG(("qc_install:   qc_nextstate is [%p]", qc_nextstate));
 }
 
 static OP* qc_nextstate(pTHX) {
@@ -91,7 +76,7 @@ static OP* qc_nextstate(pTHX) {
         PL_op->op_ppaddr = nextstate_orig;
         if (!cover) {
             cover = cover_create();
-            GLOG(("qc_nextstate: created cover data is [%p]", cover));
+            GLOG(("qc_nextstate: created cover data [%p]", cover));
         }
         /* Now do our own nefarious tracking... */
         cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
@@ -100,14 +85,13 @@ static OP* qc_nextstate(pTHX) {
     return ret;
 }
 
-static void qc_dump(pTHX_ CoverList* cover)
+static void qc_dump(CoverList* cover)
 {
     static int count = 0;
     static time_t last = 0;
 
     time_t t = 0;
     FILE* fp = 0;
-    const char* dir = 0;
     char base[1024];
     char tmp[1024];
     char txt[1024];
@@ -148,7 +132,6 @@ static void qc_dump(pTHX_ CoverList* cover)
      * done, we atomically rename it and get rid of the dot.  This way, any job
      * polling for new files will not find any half-done work.
      */
-    dir = output_directory(aTHX);
     sprintf(tmp, "%s/.%s%s", dir, base, QC_EXTENSION);
     sprintf(txt, "%s/%s%s" , dir, base, QC_EXTENSION);
 
@@ -164,7 +147,7 @@ static void qc_dump(pTHX_ CoverList* cover)
         fprintf(fp, "\"time\":\"%02d:%02d:%02d\",",
                 now.tm_hour, now.tm_min, now.tm_sec);
 
-        dump_metadata(aTHX_ fp);
+        /* dump_metadata(aTHX_ fp); */
 
         cover_dump(cover, fp);
 
@@ -174,11 +157,12 @@ static void qc_dump(pTHX_ CoverList* cover)
     }
 }
 
-static const char* output_directory(pTHX)
+static void save_output_directory(pTHX)
 {
     HV* qc_config = 0;
     SV** val = 0;
     STRLEN len = 0;
+    const char* str;
 
     qc_config = get_hv(QC_CONFIG_VAR, 0);
     if (!qc_config) {
@@ -190,9 +174,11 @@ static const char* output_directory(pTHX)
     if (!SvUTF8(*val)) {
         sv_utf8_upgrade(*val);
     }
-    return SvPV_const(*val, len);
+    str = SvPV_const(*val, len);
+    memcpy(dir, str, len + 1);
 }
 
+#if 0
 static void dump_metadata(pTHX_ FILE* fp)
 {
     HV* qc_metadata = 0;
@@ -207,6 +193,7 @@ static void dump_metadata(pTHX_ FILE* fp)
     dump_hash(aTHX_ qc_metadata, fp);
     fprintf(fp, ",");
 }
+#endif
 
 
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
@@ -222,10 +209,21 @@ void
 start()
 CODE:
     GLOG(("@@@ start()"));
-    qc_initialize(aTHX_ 1);
+    if (enabled) {
+        croak("%s::start() can be called only once.", QC_PACKAGE);
+    }
+    enabled = 1;
+    qc_init();
+    save_output_directory(aTHX);
 
 void
 end()
 CODE:
     GLOG(("@@@ end()"));
-    qc_terminate(aTHX_ 1);
+    if (!enabled) {
+        croak("%s::start() must be called before calling %s::end()",
+              QC_PACKAGE, QC_PACKAGE);
+    }
+    save_output_directory(aTHX);
+    qc_fini();
+    enabled = 0;

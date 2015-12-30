@@ -2,6 +2,7 @@ package Devel::QuickCover;
 
 use strict;
 use warnings;
+
 use XSLoader;
 use Data::Dumper;
 
