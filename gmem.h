@@ -45,6 +45,9 @@
     scalar = 0; \
   } while (0)
 
+void gmem_init(void);
+void gmem_fini(void);
+
 #if !defined(GMEM_CHECK) || GMEM_CHECK < 1
 
 #define GMEM_NEW(scalar, type, size)             _GMEM_NEW(scalar, type, size)

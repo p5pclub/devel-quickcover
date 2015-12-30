@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include "gmem.h"
 
@@ -12,10 +11,8 @@ long gmem_del = 0;
 
 static int gmem_inited = 0;
 
-static void gmem_init(void);
-static void gmem_fini(void);
-
-static void gmem_init(void) {
+void gmem_init()
+{
   if (gmem_inited) {
     return;
   }
@@ -27,10 +24,10 @@ static void gmem_init(void) {
   fprintf(stderr, "=== MEM BEG {%lu} %ld %ld ===\n",
           (unsigned long) getpid(), gmem_new, gmem_del);
 #endif
-  atexit(gmem_fini);
 }
 
-static void gmem_fini(void) {
+void gmem_fini(void)
+{
   if (!gmem_inited) {
     return ;
   }
@@ -53,9 +50,8 @@ int gmem_new_called(const char* file,
                     int line,
                     void* var,
                     int count,
-                    long size) {
-  gmem_init();
-
+                    long size)
+{
   if (!var) {
     return 0;
   }
@@ -64,11 +60,17 @@ int gmem_new_called(const char* file,
     return 0;
   }
 
+  if (!gmem_inited) {
+    gmem_init();
+  }
+
   long total = size * count;
+
 #if defined(GMEM_CHECK) && GMEM_CHECK >= 2
   fprintf(stderr, "=== MEM NEW %s %d %p %d %ld %ld ===\n",
           file, line, var, count, size, total);
 #endif
+
   gmem_new += total;
   return total;
 }
@@ -77,9 +79,8 @@ int gmem_del_called(const char* file,
                     int line,
                     void* var,
                     int count,
-                    long size) {
-  gmem_init();
-
+                    long size)
+{
   if (!var) {
     return 0;
   }
@@ -91,11 +92,17 @@ int gmem_del_called(const char* file,
     return 0;
   }
 
+  if (!gmem_inited) {
+    gmem_init();
+  }
+
   long total = size * count;
+
 #if defined(GMEM_CHECK) && GMEM_CHECK >= 2
   fprintf(stderr, "=== MEM DEL %s %d %p %d %ld %ld ===\n",
           file, line, var, count, size, total);
 #endif
+
   gmem_del += total;
   return total;
 }
@@ -104,14 +111,17 @@ int gmem_strnew(const char* file,
                 int line,
                 char** tgt,
                 const char* src,
-                int len) {
+                int len)
+{
   if (!tgt) {
     return 0;
   }
+
   *tgt = 0;
   if (!src) {
     return 0;
   }
+
   if (len <= 0) {
     len = strlen(src) + 1;
   }
@@ -124,10 +134,12 @@ int gmem_strnew(const char* file,
 int gmem_strdel(const char* file,
                 int line,
                 char** str,
-                int len) {
+                int len)
+{
   if (!str || !*str) {
     return 0;
   }
+
   if (len <= 0) {
     len = strlen(*str) + 1;
   }
@@ -135,6 +147,16 @@ int gmem_strdel(const char* file,
   _GMEM_DEL(*str, char*, len);
   *str = 0;
   return len;
+}
+
+#else
+
+void gmem_init()
+{
+}
+
+void gmem_fini(void)
+{
 }
 
 #endif /* #if defined(GMEM_CHECK) && GMEM_CHECK >= 1 */
