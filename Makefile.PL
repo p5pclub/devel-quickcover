@@ -20,6 +20,8 @@ WriteMakefile(
     },
     AUTHOR         => [
         'Gonzalo Diethelm (gonzus@cpan.org)',
+        'Andreas Guðmundsson (andreasg@nasarde.org)',
+        'Andrei Vereha (avereha@cpan.org)',
     ],
     LIBS           => [''],
 #    DEFINE         => '-DGMEM_CHECK',
