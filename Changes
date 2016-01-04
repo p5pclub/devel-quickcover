@@ -1,3 +1,9 @@
+0.300000    2016-01-04
+            * Allow passing metadata only when calling import.
+            * Change dump format to have an array of lines for each file.
+            * Change av_top_index to av_len, trying to fix warnings
+              reported by CPAN.
+
 0.200001    2015-12-31
             * Improve how we manage dumping the cover data, whether when
               end() has specifically been called or when the module exits.
