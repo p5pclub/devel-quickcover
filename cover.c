@@ -90,7 +90,7 @@ void cover_dump(CoverList* cover, FILE* fp) {
    * We output the cover data as elements in a JSON hash
    * that must be opened / closed OUTSIDE this routine.
    */
-  fprintf(fp, "\"files\":{");
+  fprintf(fp, "\"files\":\n{");
   for (i = 0 ; i < cover->size; i++) {
     int j = 0;
     int lcount = 0;
@@ -100,7 +100,7 @@ void cover_dump(CoverList* cover, FILE* fp) {
     }
 
     if (ncount++) {
-      fprintf(fp, ",");
+      fprintf(fp, ",\n");
     }
     fprintf(fp, "\"%s\":{",
             node->file);
