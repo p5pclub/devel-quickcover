@@ -17,16 +17,18 @@
 
 #define QC_PACKAGE                 "Devel::QuickCover"
 #define QC_CONFIG_VAR              QC_PACKAGE "::CONFIG"
-#define QC_METADATA_VAR            QC_PACKAGE "::METADATA"
 
-#define QC_CONFIG_OUTPUT_DIR       "output_directory"
+#define QC_CONFIG_OUTPUTDIR        "output_directory"
 #define QC_CONFIG_METADATA         "metadata"
+
+#define MAX_OUTPUTDIR_LENGTH       1024
+#define MAX_METADATA_LENGTH        1024
 
 static Perl_ppaddr_t nextstate_orig = 0;
 static CoverList* cover = 0;
 static int enabled = 0;
-static char dir[1024];
-static char data[1024];
+static char output_dir[MAX_OUTPUTDIR_LENGTH];
+static char metadata[MAX_METADATA_LENGTH];
 
 static void qc_init(void);
 static void qc_fini(void);
@@ -34,15 +36,17 @@ static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
 static void qc_dump(CoverList* cover);
 
+static void save_stuff(pTHX);
 static void save_output_directory(pTHX);
+static void save_metadata(pTHX);
 
 static void qc_init(void)
 {
     atexit(qc_fini);
 
     gmem_init();
-    strcpy(dir, "/tmp");
-    data[0] = '\0';
+    strcpy(output_dir, "/tmp");
+    metadata[0] = '\0';
 }
 
 static void qc_fini(void)
@@ -115,7 +119,7 @@ static void qc_dump(CoverList* cover)
     /*
      * We generate the information on a file with the following structure:
      *
-     *   dir/prefix_YYYYMMDD_hhmmss_pid_NNNNN.txt
+     *   output_dir/prefix_YYYYMMDD_hhmmss_pid_NNNNN.txt
      *
      * where NNNNN is a suffix counter to allow for more than one file in a
      * single second interval.
@@ -132,8 +136,8 @@ static void qc_dump(CoverList* cover)
      * done, we atomically rename it and get rid of the dot.  This way, any job
      * polling for new files will not find any half-done work.
      */
-    sprintf(tmp, "%s/.%s%s", dir, base, QC_EXTENSION);
-    sprintf(txt, "%s/%s%s" , dir, base, QC_EXTENSION);
+    sprintf(tmp, "%s/.%s%s", output_dir, base, QC_EXTENSION);
+    sprintf(txt, "%s/%s%s" , output_dir, base, QC_EXTENSION);
 
     GLOG(("qc_dump: dumping cover data [%p] to file [%s]", cover, txt));
     fp = fopen(tmp, "w");
@@ -147,14 +151,20 @@ static void qc_dump(CoverList* cover)
         fprintf(fp, "\"time\":\"%02d:%02d:%02d\",",
                 now.tm_hour, now.tm_min, now.tm_sec);
 
-        /* dump_metadata(aTHX_ fp); */
-
+        fprintf(fp, "\"medatada\":%s,", metadata);
         cover_dump(cover, fp);
 
         fprintf(fp, "}");
         fclose(fp);
         rename(tmp, txt);
     }
+}
+
+static void save_stuff(pTHX)
+{
+    save_output_directory(aTHX);
+    save_metadata(aTHX);
+
 }
 
 static void save_output_directory(pTHX)
@@ -169,31 +179,47 @@ static void save_output_directory(pTHX)
         die("%s: Internal error, exiting: %s must exist",
             QC_PACKAGE, QC_CONFIG_VAR);
     }
-    val = hv_fetch(qc_config, QC_CONFIG_OUTPUT_DIR,
-                   sizeof(QC_CONFIG_OUTPUT_DIR) - 1, 0);
+    val = hv_fetch(qc_config, QC_CONFIG_OUTPUTDIR,
+                   sizeof(QC_CONFIG_OUTPUTDIR) - 1, 0);
     if (!SvUTF8(*val)) {
         sv_utf8_upgrade(*val);
     }
     str = SvPV_const(*val, len);
-    memcpy(dir, str, len + 1);
+    if (len >= MAX_OUTPUTDIR_LENGTH) {
+        die("%s: Internal error, exiting: %s length %lu is greater than max %lu",
+            QC_PACKAGE, QC_CONFIG_OUTPUTDIR,
+            (unsigned long) len, (unsigned long) MAX_OUTPUTDIR_LENGTH);
+    }
+    memcpy(output_dir, str, len + 1);
 }
 
-#if 0
-static void dump_metadata(pTHX_ FILE* fp)
+static void save_metadata(pTHX)
 {
-    HV* qc_metadata = 0;
+    HV* qc_config = 0;
+    SV** val = 0;
+    HV* hv;
+    Buffer buffer;
 
-    qc_metadata = get_hv(QC_METADATA_VAR, 0);
-    if (!qc_metadata) {
+    qc_config = get_hv(QC_CONFIG_VAR, 0);
+    if (!qc_config) {
         die("%s: Internal error, exiting: %s must exist",
-            QC_PACKAGE, QC_METADATA_VAR);
+            QC_PACKAGE, QC_CONFIG_VAR);
+    }
+    val = hv_fetch(qc_config, QC_CONFIG_METADATA,
+                   sizeof(QC_CONFIG_METADATA) - 1, 0);
+    if (!SvROK(*val) || SvTYPE(SvRV(*val)) != SVt_PVHV) {
+        die("%s: Internal error, exiting: %s must be a hashref",
+            QC_PACKAGE, QC_CONFIG_METADATA);
     }
 
-    fprintf(fp, "\"%s\":", QC_CONFIG_METADATA);
-    dump_hash(aTHX_ qc_metadata, fp);
-    fprintf(fp, ",");
+    hv = (HV*) SvRV(*val);
+    buffer.data = metadata;
+    buffer.pos = 0;
+    buffer.len = MAX_METADATA_LENGTH;
+    dump_hash(aTHX_ hv, &buffer);
+    metadata[buffer.pos] = '\0';
+    GLOG(("Saved metadata [%s]", metadata));
 }
-#endif
 
 
 MODULE = Devel::QuickCover        PACKAGE = Devel::QuickCover
@@ -214,7 +240,7 @@ CODE:
     }
     enabled = 1;
     qc_init();
-    save_output_directory(aTHX);
+    save_stuff(aTHX);
 
 void
 end()
@@ -224,6 +250,6 @@ CODE:
         croak("%s::start() must be called before calling %s::end()",
               QC_PACKAGE, QC_PACKAGE);
     }
-    save_output_directory(aTHX);
+    save_stuff(aTHX);
     qc_fini();
     enabled = 0;

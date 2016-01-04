@@ -6,7 +6,7 @@ use warnings;
 use XSLoader;
 use Data::Dumper;
 
-our $VERSION = '0.200001';
+our $VERSION = '0.300000';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
@@ -14,11 +14,9 @@ my %DEFAULT_CONFIG = (
     nostart          => 0,      # Don't start gathering coverage information on import
     nodump           => 0,      # Don't dump the coverage report at the END of the program
     output_directory => "/tmp", # Write report to that directory
+    metadata         => {}    , # Additional context information
 );
 our %CONFIG;
-
-# A place to stash information we want dumped to the file:
-our %METADATA;
 
 sub import {
     my ($class, @opts) = @_;
@@ -42,12 +40,6 @@ sub import {
     }
 }
 
-sub set_metadata {
-    my (@data) = @_;
-
-    %METADATA = @data;
-}
-
 END {
     if (!$CONFIG{'nodump'}) {
         Devel::QuickCover::end();
@@ -68,7 +60,7 @@ Devel::QuickCover - Quick & dirty code coverage for Perl
 
 =head1 VERSION
 
-Version 0.200001
+Version 0.300000
 
 =head1 SYNOPSIS
 
@@ -91,11 +83,15 @@ the coverage hook gets uninstalled. So in this case, we only get
 coverage information for C<bar()>. We also get the specified metadata
 in the coverage information.
 
-    use Devel::QuickCover (nostart => 1, nodump => 1, output_directory => "some_dir/");
+    use Devel::QuickCover (
+      nostart => 1,
+      nodump => 1,
+      output_directory => "some_dir/",
+      metadata => { git_tag = "deadbeef" });
+
     foo();
     Devel::QuickCover::start();
     bar();
-    Devel::QuickCover::add_metadata({ foo => "FOO", bar => "BAR" });
     Devel::QuickCover::end();
     baz();
 
