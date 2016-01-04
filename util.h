@@ -11,8 +11,14 @@
 /* Needed for FILE declaration. */
 #include <stdio.h>
 
-void dump_value(pTHX_ SV* val, FILE* fp);
-void dump_hash(pTHX_ HV* hash, FILE* fp);
-void dump_array(pTHX_ AV* array, FILE* fp);
+typedef struct Buffer {
+    char* data;
+    size_t pos;
+    size_t len;
+} Buffer;
+
+void dump_value(pTHX_ SV* val, Buffer* buf);
+void dump_hash(pTHX_ HV* hash, Buffer* buf);
+void dump_array(pTHX_ AV* array, Buffer* buf);
 
 #endif
