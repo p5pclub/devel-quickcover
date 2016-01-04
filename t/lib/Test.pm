@@ -58,12 +58,12 @@ sub parse_fixture {
 
     use Data::Dumper;
 
-    my %expected =
-        map  +($_->[0], 1),                      # pairs (lineno, 1)
+    my @expected =
+        map  +($_->[0]),                         # linenos
         grep +($_->[1] =~ /YES/),                # look for lines marked with YES
         map  [ $_ + 1, $lines[$_] ], 0..$#lines; # enumerate
 
-    return \%expected;
+    return \@expected;
 }
 
 
