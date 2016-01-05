@@ -18,6 +18,9 @@ my $STRUCTURE     = "$COVERDB/structure/";
 my $RUNS          = "$COVERDB/runs/";
 
 my $JSON          = JSON::XS->new->utf8;
+my $DEVEL_COVER_DB_FORMAT = 'Sereal';
+$ENV{DEVEL_COVER_DB_FORMAT}
+    and $DEVEL_COVER_DB_FORMAT = 'JSON';
 
 exit main();
 
@@ -54,11 +57,17 @@ sub load_data {
 }
 
 sub coverdb_decode {
-    $JSON->decode(shift);
+    if ($DEVEL_COVER_DB_FORMAT eq 'JSON') {
+       return $JSON->decode(shift);
+    }
+    return decode_sereal(shift);
 }
 
 sub coverdb_encode {
-    $JSON->encode(shift);
+    if ($DEVEL_COVER_DB_FORMAT eq 'JSON') {
+        return $JSON->encode(shift);
+    }
+    return encode_sereal(shift);
 }
 
 sub generate_cover_db {
