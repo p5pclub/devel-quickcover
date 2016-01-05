@@ -5,7 +5,7 @@ use warnings;
 
 use XSLoader;
 
-our $VERSION = '0.300000';
+our $VERSION = '0.300001';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 

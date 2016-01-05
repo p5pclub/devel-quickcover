@@ -1,3 +1,8 @@
+0.300001    2016-01-05
+            * Fix typo: medatada is really metadata...
+            * Fix prerrequisites for the building and for testing.
+            * Everywhere we now use JSON::XS instead of JSON.
+
 0.300000    2016-01-04
             * Allow passing metadata only when calling import.
             * Change dump format to have an array of lines for each file.
