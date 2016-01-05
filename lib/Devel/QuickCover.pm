@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use XSLoader;
-use Data::Dumper;
 
 our $VERSION = '0.300000';
 

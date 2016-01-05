@@ -8,15 +8,15 @@ WriteMakefile(
     LICENSE        => 'mit',
     MIN_PERL_VERSION => 5.008009,
     PREREQ_PM      => {
-        'Exporter'    => '5.57',
         'XSLoader'    => 0,
         'JSON::XS'    => 0,
-        'File::Slurp' => 0,
     },
     TEST_REQUIRES  => {
         'Test::More'            => 0,
         'Test::Builder::Module' => 0,
         'File::Temp'            => 0,
+        'File::Slurp'           => 0,
+        'Data::Dumper'          => 0,
     },
     AUTHOR         => [
         'Gonzalo Diethelm (gonzus@cpan.org)',
