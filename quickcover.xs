@@ -151,7 +151,7 @@ static void qc_dump(CoverList* cover)
         fprintf(fp, "\"time\":\"%02d:%02d:%02d\",",
                 now.tm_hour, now.tm_min, now.tm_sec);
 
-        fprintf(fp, "\"medatada\":%s,", metadata);
+        fprintf(fp, "\"metadata\":%s,", metadata);
         cover_dump(cover, fp);
 
         fprintf(fp, "}");
