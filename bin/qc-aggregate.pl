@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use JSON        qw(encode_json   decode_json);
+use JSON::XS    qw(encode_json   decode_json);
 use Sereal      qw(encode_sereal decode_sereal);
 use File::Slurp qw(read_file     write_file);
 use Data::Dumper;
@@ -116,7 +116,7 @@ sub process_file {
         return;
     }
 
-    my $decoded = JSON::decode_json($json);
+    my $decoded = decode_json($json);
     if (!$decoded) {
         printf("Could not JSON-decode data for file [%s]\n", $file);
         return;
