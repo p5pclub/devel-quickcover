@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 use strict;
 use warnings;
@@ -8,6 +8,7 @@ use warnings;
 use Data::Dumper;
 use Digest::MD5 qw(md5_hex);
 use File::Slurp qw(read_file write_file);
+use Getopt::Long;
 use JSON::XS;
 use Sereal qw(encode_sereal decode_sereal);
 
@@ -16,6 +17,12 @@ my $COVERDB       = './cover_db/';
 my $DIGESTS       = "$COVERDB/digests";
 my $STRUCTURE     = "$COVERDB/structure/";
 my $RUNS          = "$COVERDB/runs/";
+my %PATH_REWRITES = ();
+
+GetOptions('input=s'         => \$QC_DATABASE,
+           'cover-db=s'      => \$COVERDB,
+           'path-rewrite=s%' => \%PATH_REWRITES,
+);
 
 my $JSON          = JSON::XS->new->utf8;
 my $DEVEL_COVER_DB_FORMAT = 'Sereal';
@@ -24,7 +31,7 @@ $ENV{DEVEL_COVER_DB_FORMAT}
 
 exit main();
 
-sub main() {
+sub main {
     my $data = load_data($QC_DATABASE);
 
     make_coverdb_directories();
@@ -89,6 +96,9 @@ sub generate_cover_db {
     };
 
     for my $file (keys %{ $data }) {
+        while ( my ($from, $to) = each %PATH_REWRITES ) {
+            $file =~ s/$from/$to/;
+        }
         if (!-r $file) {
             print "Skipping $file for now. Probably an eval\n";
             next;
