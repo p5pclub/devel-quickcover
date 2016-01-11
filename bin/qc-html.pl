@@ -14,15 +14,16 @@ use Sereal qw(encode_sereal decode_sereal);
 
 my $QC_DATABASE   = 'qc.dat';
 my $COVERDB       = './cover_db/';
-my $DIGESTS       = "$COVERDB/digests";
-my $STRUCTURE     = "$COVERDB/structure/";
-my $RUNS          = "$COVERDB/runs/";
 my %PATH_REWRITES = ();
 
 GetOptions('input=s'         => \$QC_DATABASE,
            'cover-db=s'      => \$COVERDB,
            'path-rewrite=s%' => \%PATH_REWRITES,
 );
+
+my $DIGESTS       = "$COVERDB/digests";
+my $STRUCTURE     = "$COVERDB/structure/";
+my $RUNS          = "$COVERDB/runs/";
 
 my $JSON          = JSON::XS->new->utf8;
 my $DEVEL_COVER_DB_FORMAT = 'Sereal';
