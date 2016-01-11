@@ -7,6 +7,7 @@ use warnings;
 
 use Data::Dumper;
 use Digest::MD5 qw(md5_hex);
+use File::Path qw(make_path);
 use File::Slurp qw(read_file write_file);
 use Getopt::Long;
 use JSON::XS;
@@ -43,13 +44,13 @@ sub main {
 
 sub make_coverdb_directories {
     -d $COVERDB
-        or mkdir $COVERDB;
+        or make_path $COVERDB;
 
     -d $STRUCTURE
-        or mkdir $STRUCTURE;
+        or make_path $STRUCTURE;
 
     -d $RUNS
-        or mkdir $RUNS;
+        or make_path $RUNS;
 }
 
 sub load_data {
