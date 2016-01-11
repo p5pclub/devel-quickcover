@@ -100,6 +100,7 @@ sub generate_cover_db {
     };
 
     for my $file (keys %{ $data }) {
+        my $original_filename = $file;
         while ( my ($from, $to) = each %PATH_REWRITES ) {
             $file =~ s/$from/$to/;
         }
@@ -109,7 +110,7 @@ sub generate_cover_db {
             next;
         }
 
-        my $hits              = $data->{ $file };
+        my $hits              = $data->{ $original_filename };
         my ($statement, $md5) = process_file_structure($file, $digests);
 
         $run->{count}{$file}{statement} = [ map +( $hits->{ $_ } // 0), @{ $statement } ];
