@@ -39,6 +39,7 @@ WriteMakefile(
             },
         },
     },
+    EXE_FILES     => ['bin/qc-aggregate.pl', 'bin/qc-html.pl'],
 );
 
 # Add options CCFLAGS without overwriting the defaults
