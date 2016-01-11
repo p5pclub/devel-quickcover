@@ -28,7 +28,7 @@ my $DIGESTS       = "$COVERDB/digests";
 my $STRUCTURE     = "$COVERDB/structure/";
 my $RUNS          = "$COVERDB/runs/";
 
-my $JSON          = JSON::XS->new->utf8;
+my $JSON          = JSON::XS->new->utf8->indent;
 my $DEVEL_COVER_DB_FORMAT = 'Sereal';
 $ENV{DEVEL_COVER_DB_FORMAT}
     and $DEVEL_COVER_DB_FORMAT = 'JSON';
