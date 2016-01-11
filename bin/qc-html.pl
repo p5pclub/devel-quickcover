@@ -15,10 +15,12 @@ use Sereal qw(encode_sereal decode_sereal);
 
 my $QC_DATABASE   = 'qc.dat';
 my $COVERDB       = './cover_db/';
+my $VERBOSE       = 0;
 my %PATH_REWRITES = ();
 
 GetOptions('input=s'         => \$QC_DATABASE,
            'cover-db=s'      => \$COVERDB,
+           'verbose=i'       => \$VERBOSE,
            'path-rewrite=s%' => \%PATH_REWRITES,
 );
 
@@ -102,7 +104,8 @@ sub generate_cover_db {
             $file =~ s/$from/$to/;
         }
         if (!-r $file) {
-            print "Skipping $file for now. Probably an eval\n";
+            $VERBOSE and
+                print "Skipping $file for now. Probably an eval\n";
             next;
         }
 
