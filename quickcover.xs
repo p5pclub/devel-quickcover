@@ -234,22 +234,23 @@ BOOT:
 void
 start()
 CODE:
-    GLOG(("@@@ start()"));
     if (enabled) {
-        croak("%s::start() can be called only once.", QC_PACKAGE);
+        GLOG(("@@@ start(): ignoring multiple calls"));
+    } else {
+        GLOG(("@@@ start(): enabling Devel::QuickCover"));
+        enabled = 1;
+        qc_init();
+        save_stuff(aTHX);
     }
-    enabled = 1;
-    qc_init();
-    save_stuff(aTHX);
 
 void
 end()
 CODE:
-    GLOG(("@@@ end()"));
     if (!enabled) {
-        croak("%s::start() must be called before calling %s::end()",
-              QC_PACKAGE, QC_PACKAGE);
+        GLOG(("@@@ end(): ignoring multiple calls"));
+    } else {
+        GLOG(("@@@ end(): dumping data and disabling Devel::QuickCover"));
+        save_stuff(aTHX);
+        qc_fini();
+        enabled = 0;
     }
-    save_stuff(aTHX);
-    qc_fini();
-    enabled = 0;
