@@ -154,7 +154,7 @@ static void qc_dump(CoverList* cover)
         fprintf(fp, "\"metadata\":%s,", metadata);
         cover_dump(cover, fp);
 
-        fprintf(fp, "}");
+        fprintf(fp, "}\n");
         fclose(fp);
         rename(tmp, txt);
     }
