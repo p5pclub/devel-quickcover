@@ -39,6 +39,20 @@ sub import {
     }
 }
 
+sub set_output_directory {
+    my ($dir) = @_;
+    return unless $dir;
+
+    $CONFIG{output_directory} = $dir;
+}
+
+sub set_metadata {
+    my ($data) = @_;
+    return unless $data;
+
+    $CONFIG{metadata} = $data;
+}
+
 END {
     if (!$CONFIG{'nodump'}) {
         Devel::QuickCover::end();
