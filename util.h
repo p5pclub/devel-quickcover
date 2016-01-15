@@ -8,14 +8,8 @@
 #include "EXTERN.h"
 #include "perl.h"
 
-/* Needed for FILE declaration. */
 #include <stdio.h>
-
-typedef struct Buffer {
-    char* data;
-    size_t pos;
-    size_t len;
-} Buffer;
+#include "buffer.h"
 
 void dump_value(pTHX_ SV* val, Buffer* buf);
 void dump_hash(pTHX_ HV* hash, Buffer* buf);

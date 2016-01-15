@@ -21,14 +21,11 @@
 #define QC_CONFIG_OUTPUTDIR        "output_directory"
 #define QC_CONFIG_METADATA         "metadata"
 
-#define MAX_OUTPUTDIR_LENGTH       1024
-#define MAX_METADATA_LENGTH        1024
-
 static Perl_ppaddr_t nextstate_orig = 0;
 static CoverList* cover = 0;
 static int enabled = 0;
-static char output_dir[MAX_OUTPUTDIR_LENGTH];
-static char metadata[MAX_METADATA_LENGTH];
+static Buffer output_dir;
+static Buffer metadata;
 
 static void qc_init(void);
 static void qc_fini(void);
@@ -45,8 +42,13 @@ static void qc_init(void)
     atexit(qc_fini);
 
     gmem_init();
-    strcpy(output_dir, "/tmp");
-    metadata[0] = '\0';
+    buffer_init(&output_dir, 0);
+    buffer_init(&metadata, 0);
+
+    buffer_append(&output_dir, "/tmp", 0);
+    buffer_terminate(&output_dir);
+
+    buffer_terminate(&metadata);
 }
 
 static void qc_fini(void)
@@ -57,6 +59,8 @@ static void qc_fini(void)
         cover = 0;
     }
 
+    buffer_fini(&metadata);
+    buffer_fini(&output_dir);
     gmem_fini();
 }
 
@@ -140,8 +144,8 @@ static void qc_dump(CoverList* cover)
      * done, we atomically rename it and get rid of the dot.  This way, any job
      * polling for new files will not find any half-done work.
      */
-    sprintf(tmp, "%s/.%s%s", output_dir, base, QC_EXTENSION);
-    sprintf(txt, "%s/%s%s" , output_dir, base, QC_EXTENSION);
+    sprintf(tmp, "%s/.%s%s", output_dir.data, base, QC_EXTENSION);
+    sprintf(txt, "%s/%s%s" , output_dir.data, base, QC_EXTENSION);
 
     GLOG(("qc_dump: dumping cover data [%p] to file [%s]", cover, txt));
     fp = fopen(tmp, "w");
@@ -155,7 +159,7 @@ static void qc_dump(CoverList* cover)
         fprintf(fp, "\"time\":\"%02d:%02d:%02d\",",
                 now.tm_hour, now.tm_min, now.tm_sec);
 
-        fprintf(fp, "\"metadata\":%s,", metadata);
+        fprintf(fp, "\"metadata\":%s,", metadata.data);
         cover_dump(cover, fp);
 
         fprintf(fp, "}\n");
@@ -189,12 +193,10 @@ static void save_output_directory(pTHX)
         sv_utf8_upgrade(*val);
     }
     str = SvPV_const(*val, len);
-    if (len >= MAX_OUTPUTDIR_LENGTH) {
-        die("%s: Internal error, exiting: %s length %lu is greater than max %lu",
-            QC_PACKAGE, QC_CONFIG_OUTPUTDIR,
-            (unsigned long) len, (unsigned long) MAX_OUTPUTDIR_LENGTH);
-    }
-    memcpy(output_dir, str, len + 1);
+
+    buffer_reset(&output_dir);
+    buffer_append(&output_dir, str, len);
+    buffer_terminate(&output_dir);
 }
 
 static void save_metadata(pTHX)
@@ -202,7 +204,6 @@ static void save_metadata(pTHX)
     HV* qc_config = 0;
     SV** val = 0;
     HV* hv;
-    Buffer buffer;
 
     qc_config = get_hv(QC_CONFIG_VAR, 0);
     if (!qc_config) {
@@ -217,12 +218,10 @@ static void save_metadata(pTHX)
     }
 
     hv = (HV*) SvRV(*val);
-    buffer.data = metadata;
-    buffer.pos = 0;
-    buffer.len = MAX_METADATA_LENGTH;
-    dump_hash(aTHX_ hv, &buffer);
-    metadata[buffer.pos] = '\0';
-    GLOG(("Saved metadata [%s]", metadata));
+    buffer_reset(&metadata);
+    dump_hash(aTHX_ hv, &metadata);
+    buffer_terminate(&metadata);
+    GLOG(("Saved metadata [%s]", metadata.data));
 }
 
 
@@ -253,6 +252,7 @@ CODE:
     if (!enabled) {
         GLOG(("@@@ end(): ignoring multiple calls"));
     } else {
+        /* TODO: get optional parameter "nodump" and pass it to qc_fini() */
         GLOG(("@@@ end(): dumping data and disabling Devel::QuickCover"));
         save_stuff(aTHX);
         qc_fini();
