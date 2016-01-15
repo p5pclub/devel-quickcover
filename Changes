@@ -1,3 +1,8 @@
+0.300002    2016-01-15
+            * Add a newline at the end of generated cover files.
+            * Fix / improve scripts qc-aggregate.pl and qc-html.pl.
+            * Scripts qc-aggregate.pl and qc-html.pl are now installed.
+
 0.300001    2016-01-05
             * Fix typo: medatada is really metadata...
             * Fix prerrequisites for the building and for testing.
