@@ -77,11 +77,15 @@ static OP* qc_nextstate(pTHX) {
     OP* ret = nextstate_orig(aTHX);
 
     if (enabled) {
+        /* Restore original nextstate op for this node. */
         PL_op->op_ppaddr = nextstate_orig;
+
+        /* Create data structure if necessary. */
         if (!cover) {
             cover = cover_create();
             GLOG(("qc_nextstate: created cover data [%p]", cover));
         }
+
         /* Now do our own nefarious tracking... */
         cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
     }
