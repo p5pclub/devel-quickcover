@@ -106,7 +106,6 @@ void cover_dump(CoverList* cover, FILE* fp) {
             node->file);
     for (j = 0; j < node->bmax; ++j) {
       if (BIT_IS_ON(node->lines, j)) {
-        /* TODO: maybe output more than one line in each line with type 2? */
         if (lcount++) {
           fprintf(fp, ",");
         }
