@@ -20,6 +20,7 @@
 
 #define QC_CONFIG_OUTPUTDIR        "output_directory"
 #define QC_CONFIG_METADATA         "metadata"
+#define QC_CONFIG_NOATEXIT         "noatexit"
 
 static Perl_ppaddr_t nextstate_orig = 0;
 static CoverList* cover = 0;
@@ -27,7 +28,7 @@ static int enabled = 0;
 static Buffer output_dir;
 static Buffer metadata;
 
-static void qc_init(void);
+static void qc_init(int noatexit);
 static void qc_fini(void);
 
 static void qc_terminate(int nodump);
@@ -39,9 +40,12 @@ static void save_stuff(pTHX);
 static void save_output_directory(pTHX);
 static void save_metadata(pTHX);
 
-static void qc_init(void)
+static void qc_init(int noatexit)
 {
-    atexit(qc_fini);
+    if (!noatexit) {
+        GLOG(("Registering atexit handler"));
+        atexit(qc_fini);
+    }
 
     gmem_init();
     buffer_init(&output_dir, 0);
@@ -247,13 +251,27 @@ BOOT:
 
 void
 start()
+PREINIT:
+    HV* qc_config = 0;
+    SV** val = 0;
+    int noatexit = 0;
 CODE:
     if (enabled) {
         GLOG(("@@@ start(): ignoring multiple calls"));
     } else {
         GLOG(("@@@ start(): enabling Devel::QuickCover"));
+
+        qc_config = get_hv(QC_CONFIG_VAR, 0);
+        if (!qc_config) {
+            die("%s: Internal error, exiting: %s must exist",
+                QC_PACKAGE, QC_CONFIG_VAR);
+        }
+        val = hv_fetch(qc_config, QC_CONFIG_NOATEXIT,
+                       sizeof(QC_CONFIG_NOATEXIT) - 1, 0);
+        noatexit = val && SvTRUE(*val);
+
         enabled = 1;
-        qc_init();
+        qc_init(noatexit);
         save_stuff(aTHX);
     }
 

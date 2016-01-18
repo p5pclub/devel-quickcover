@@ -10,6 +10,7 @@ our $VERSION = '0.400000';
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
 my %DEFAULT_CONFIG = (
+    noatexit         => 0,      # Don't register an atexit handler to dump and cleanup
     nostart          => 0,      # Don't start gathering coverage information on import
     nodump           => 0,      # Don't dump the coverage report at the END of the program
     output_directory => "/tmp", # Write report to that directory
@@ -92,11 +93,13 @@ The following program sets up the coverage hook on C<start()> and
 dumps a report to C<some_dir> on C<end()>, at which point
 the coverage hook gets uninstalled. So in this case, we only get
 coverage information for C<bar()>. We also get the specified metadata
-in the coverage information.
+in the coverage information. We also ask not to register an atexit()
+handler to dump cover data / cleanup; it will be done from C<end()>.
 
     use Devel::QuickCover (
       nostart => 1,
       nodump => 1,
+      noatexit => 1,
       output_directory => "some_dir/",
       metadata => { git_tag = "deadbeef" });
 
