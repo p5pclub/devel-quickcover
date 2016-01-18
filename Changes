@@ -1,3 +1,10 @@
+0.400000    2016-01-18
+            * Support passing an optional boolean nodump arg to end().
+            * Include -D_XOPEN_SOURCE=700 only when not compiling for FreeBSD.
+            * Use a dynamically growing buffer, for output_dir and metadata.
+            * Allow multiple calls to start() and end() with no ill effects.
+            * Add functions to set output dir and metadata.
+
 0.300002    2016-01-15
             * Add a newline at the end of generated cover files.
             * Fix / improve scripts qc-aggregate.pl and qc-html.pl.
