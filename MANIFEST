@@ -1,4 +1,5 @@
 quickcover.xs
+buffer.h
 cover.c
 cover.h
 glog.c
