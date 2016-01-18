@@ -51,7 +51,11 @@ sub cflags {
 
     $self->{CCFLAGS} .= ' -Wall';                # Flag all warnings
     $self->{CCFLAGS} .= ' -std=c89';             # Compile according to C89 standard
-    $self->{CCFLAGS} .= ' -D_XOPEN_SOURCE=700';  # Needed for localtime_r()
+
+    # Need this define for localtime_r(), except on FreeBSD
+    if ($^O ne 'freebsd') {
+        $self->{CCFLAGS} .= ' -D_XOPEN_SOURCE=700';
+    }
 
     foreach (@cflags) {
         $_ = "CCFLAGS = $self->{CCFLAGS}" if /^CCFLAGS/;
