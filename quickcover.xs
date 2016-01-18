@@ -29,6 +29,8 @@ static Buffer metadata;
 
 static void qc_init(void);
 static void qc_fini(void);
+
+static void qc_terminate(int nodump);
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
 static void qc_dump(CoverList* cover);
@@ -51,10 +53,14 @@ static void qc_init(void)
     buffer_terminate(&metadata);
 }
 
-static void qc_fini(void)
+static void qc_terminate(int nodump)
 {
     if (cover) {
-        qc_dump(cover);
+        if (nodump) {
+            GLOG(("Skipping dumping cover data"));
+        } else {
+            qc_dump(cover);
+        }
         cover_destroy(cover);
         cover = 0;
     }
@@ -62,6 +68,11 @@ static void qc_fini(void)
     buffer_fini(&metadata);
     buffer_fini(&output_dir);
     gmem_fini();
+}
+
+static void qc_fini(void)
+{
+    qc_terminate(0);
 }
 
 static void qc_install(pTHX)
@@ -247,14 +258,19 @@ CODE:
     }
 
 void
-end()
+end(...)
+PREINIT:
+    int nodump = 0;
 CODE:
     if (!enabled) {
         GLOG(("@@@ end(): ignoring multiple calls"));
     } else {
-        /* TODO: get optional parameter "nodump" and pass it to qc_fini() */
-        GLOG(("@@@ end(): dumping data and disabling Devel::QuickCover"));
+        if (items >= 1) {
+            SV* pnodump = ST(0);
+            nodump = SvTRUE(pnodump);
+        }
+        GLOG(("@@@ end(%d): dumping data and disabling Devel::QuickCover", nodump));
         save_stuff(aTHX);
-        qc_fini();
+        qc_terminate(nodump);
         enabled = 0;
     }

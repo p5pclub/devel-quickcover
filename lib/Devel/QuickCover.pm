@@ -54,9 +54,7 @@ sub set_metadata {
 }
 
 END {
-    if (!$CONFIG{'nodump'}) {
-        Devel::QuickCover::end();
-    }
+    Devel::QuickCover::end($CONFIG{'nodump'});
 }
 
 1;
@@ -109,6 +107,10 @@ in the coverage information.
     baz();
 
 For now, we support calling C<start()> only once.
+
+When you call C<end()>, you can optionally pass a C<nodump>
+boolean argument, to indicate whether you wish to skip generating
+the cover files.
 
 =head1 AUTHORS
 
