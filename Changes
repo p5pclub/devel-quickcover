@@ -1,3 +1,6 @@
+0.400001    2016-01-18
+            * Add support for option noatexit.
+
 0.400000    2016-01-18
             * Support passing an optional boolean nodump arg to end().
             * Include -D_XOPEN_SOURCE=700 only when not compiling for FreeBSD.
