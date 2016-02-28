@@ -18,6 +18,9 @@ WriteMakefile(
         'File::Slurp'           => 0,
         'Data::Dumper'          => 0,
     },
+    CONFIGURE_REQUIRES => {
+        'ExtUtils::MakeMaker'   => '7.10',
+    },
     AUTHOR         => [
         'Gonzalo Diethelm (gonzus@cpan.org)',
         'Andreas Guðmundsson (andreasg@nasarde.org)',
