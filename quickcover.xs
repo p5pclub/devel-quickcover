@@ -124,6 +124,10 @@ static void qc_peep(pTHX_ OP *o)
 {
     peepp_orig(aTHX_ o);
 
+    /* don't track eval STRING source code */
+    if (PL_in_eval && !(PL_in_eval & EVAL_INREQUIRE))
+        return;
+
     if (enabled) {
         /* Create data structure if necessary. */
         if (!cover) {
