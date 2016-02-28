@@ -22,7 +22,7 @@
 #define QC_CONFIG_METADATA         "metadata"
 #define QC_CONFIG_NOATEXIT         "noatexit"
 
-static Perl_ppaddr_t nextstate_orig = 0;
+static Perl_ppaddr_t nextstate_orig = 0, dbstate_orig = 0;
 static CoverList* cover = 0;
 static int enabled = 0;
 static Buffer output_dir;
@@ -87,13 +87,15 @@ static void qc_install(pTHX)
 
     nextstate_orig = PL_ppaddr[OP_NEXTSTATE];
     PL_ppaddr[OP_NEXTSTATE] = qc_nextstate;
+    dbstate_orig = PL_ppaddr[OP_DBSTATE];
+    PL_ppaddr[OP_DBSTATE] = qc_nextstate;
 
     GLOG(("qc_install: nextstate_orig is [%p]", nextstate_orig));
     GLOG(("qc_install:   qc_nextstate is [%p]", qc_nextstate));
 }
 
 static OP* qc_nextstate(pTHX) {
-    OP* ret = nextstate_orig(aTHX);
+    OP* ret = PL_op->op_type == OP_NEXTSTATE ? nextstate_orig(aTHX) : dbstate_orig(aTHX);
 
     if (enabled) {
         /* Restore original nextstate op for this node. */
