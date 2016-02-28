@@ -63,7 +63,12 @@ sub parse_fixture {
         grep +($_->[1] =~ /YES/),                # look for lines marked with YES
         map  [ $_ + 1, $lines[$_] ], 0..$#lines; # enumerate
 
-    return \@expected;
+    my @present =
+        map  +($_->[0]),                         # linenos
+        grep +($_->[1] =~ /YES|NO/),             # look for lines marked with YES or NO
+        map  [ $_ + 1, $lines[$_] ], 0..$#lines; # enumerate
+
+    return {"covered" => \@expected, "present" => \@present};
 }
 
 

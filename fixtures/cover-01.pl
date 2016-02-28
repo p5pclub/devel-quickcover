@@ -8,7 +8,7 @@ sub used {
 }
 
 sub unused {
-    return 5;
+    return 5;   # NO
 }
 
 used();         # YES

@@ -123,11 +123,14 @@ sub process_file {
     }
 
     for my $name (keys %{$decoded->{files}}) {
-        my $lines = $decoded->{files}{$name};
-        for my $line (keys %$lines) {
-            $data->{$name}->{$line} += $lines->{$line};
-            ++$$changes;
+        my $coverage = $decoded->{files}{$name};
+        for my $line (@{$coverage->{covered}}) {
+            $data->{$name}->{$line}++;
         }
+        for my $line (@{$coverage->{present}}) {
+            $data->{$name}->{$line} //= 0;
+        }
+        $$changes += @{$coverage->{covered}};
     }
 
     unlink($file);
