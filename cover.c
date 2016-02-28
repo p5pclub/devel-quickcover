@@ -74,6 +74,9 @@ void cover_destroy(CoverList* cover) {
 void cover_add_covered(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
 
+  if (file[0] == '(')
+    return;
+
   assert(cover);
   node = add_get_node(cover, file);
 
@@ -91,6 +94,9 @@ void cover_add_covered(CoverList* cover, const char* file, int line) {
 
 void cover_add_line(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
+
+  if (file[0] == '(')
+    return;
 
   assert(cover);
   node = add_get_node(cover, file);
