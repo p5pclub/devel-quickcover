@@ -71,7 +71,7 @@ void cover_destroy(CoverList* cover) {
   GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
-CoverNode* cover_add_covered(CoverList* cover, const char* file, int line) {
+void cover_add_covered(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
 
   assert(cover);
@@ -87,11 +87,9 @@ CoverNode* cover_add_covered(CoverList* cover, const char* file, int line) {
     ++node->bcnt;
     LINE_SET_COVERED(node->lines, line);
   }
-
-  return node;
 }
 
-CoverNode* cover_add_line(CoverList* cover, const char* file, int line) {
+void cover_add_line(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
 
   assert(cover);
@@ -101,8 +99,6 @@ CoverNode* cover_add_line(CoverList* cover, const char* file, int line) {
   cover_node_ensure(node, line);
 
   LINE_SET_PRESENT(node->lines, line);
-
-  return node;
 }
 
 void cover_dump(CoverList* cover, FILE* fp) {
