@@ -1,3 +1,21 @@
+0.500000    2016-02-29
+            * Many great improvements by Mattia Barbon:
+              + Hook dbstate as well as nextstate, to allow
+                coverage when debugging is enabled.
+              + Track actual source lines as seen by Perl.
+                The previous implementation tried to parse
+                the source code, which is obviously less
+                accurate than getting the source lines
+                directly from the interpreter.
+              + Don't track source code from eval STRING.
+              + TEST_REQUIRES and META_MERGE require a
+                recent ExtUtils::MakeMaker.
+              + Remove unused return values.
+              + Don't track coverage for evals. It does not
+                exclude evals with #line directives, but it
+                serves to reduce report size.
+            * Changes on leap day... cool!
+
 0.400001    2016-01-18
             * Add support for option noatexit.
 
