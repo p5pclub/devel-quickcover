@@ -8,23 +8,26 @@
 #include "gmem.h"
 #include "cover.h"
 
+#define CHAR_LINE 4
+
 /* How big will the initial bit set allocation be. */
-#define COVER_INITIAL_SIZE 8   /* 8 * CHAR_BIT = 64 bits (lines) */
+#define COVER_INITIAL_SIZE 16   /* 8 * CHAR_BIT = 64 bits (lines) */
 
 #define COVER_LIST_INITIAL_SIZE 8   /* 8 files in the hash */
 
 /* Handle an array of unsigned char as a bit set. */
-#define BIT_TURN_ON(data, bit)   data[bit/CHAR_BIT] |=  (1 << (bit%CHAR_BIT))
-#define BIT_TURN_OFF(data, bit)  data[bit/CHAR_BIT] &= ~(1 << (bit%CHAR_BIT))
-#define BIT_IS_ON(data, bit)    (data[bit/CHAR_BIT] &   (1 << (bit%CHAR_BIT)))
+#define LINE_SET_COVERED(data, line)   data[line/CHAR_LINE] |=  (1 << (line%CHAR_LINE))
+#define LINE_SET_PRESENT(data, line)   data[line/CHAR_LINE] |=  (16 << (line%CHAR_LINE))
+#define LINE_IS_COVERED(data, line)    (data[line/CHAR_LINE] &   (1 << (line%CHAR_LINE)))
+#define LINE_IS_PRESENT_OR_COVERED(data, line)    (data[line/CHAR_LINE] &   (17 << (line%CHAR_LINE)))
 
 /* Count of the hash collisions in the hash table */
 #ifdef GLOG_SHOW
 static unsigned int max_collisions = 0;
 #endif
 
-/* Add a line to a given CoverNode; grow its bit set if necessary. */
-static void cover_node_set_line(CoverNode* node, int line);
+/* Grow CoverNode bit set if necessary. */
+static void cover_node_ensure(CoverNode* node, int line);
 
 /* Add a node to the list of files */
 static CoverNode* add_get_node(CoverList *cover, const char *file);
@@ -68,16 +71,40 @@ void cover_destroy(CoverList* cover) {
   GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
-CoverNode* cover_add(CoverList* cover, const char* file, int line) {
+void cover_add_covered(CoverList* cover, const char* file, int line) {
   CoverNode* node = 0;
+
+  if (file[0] == '(')
+    return;
 
   assert(cover);
   node = add_get_node(cover, file);
 
   assert(node);
-  cover_node_set_line(node, line);
+  cover_node_ensure(node, line);
 
-  return node;
+  /* if the line was not already registered, do so and keep track of how many */
+  /* lines we have seen so far */
+  if (! LINE_IS_COVERED(node->lines, line)) {
+    /* GLOG(("Adding line %d for [%s]", line, node->file)); */
+    ++node->bcnt;
+    LINE_SET_COVERED(node->lines, line);
+  }
+}
+
+void cover_add_line(CoverList* cover, const char* file, int line) {
+  CoverNode* node = 0;
+
+  if (file[0] == '(')
+    return;
+
+  assert(cover);
+  node = add_get_node(cover, file);
+
+  assert(node);
+  cover_node_ensure(node, line);
+
+  LINE_SET_PRESENT(node->lines, line);
 }
 
 void cover_dump(CoverList* cover, FILE* fp) {
@@ -93,40 +120,49 @@ void cover_dump(CoverList* cover, FILE* fp) {
   fprintf(fp, "\"files\":\n{");
   for (i = 0 ; i < cover->size; i++) {
     int j = 0;
-    int lcount = 0;
+    int lcount;
     node = cover->list[i];
-    if (!node) {
+    if (!node || !node->bcnt) {
       continue;
     }
 
     if (ncount++) {
       fprintf(fp, ",\n");
     }
-    fprintf(fp, "\"%s\":[",
+    fprintf(fp, "\"%s\":{\"covered\":[",
             node->file);
-    for (j = 0; j < node->bmax; ++j) {
-      if (BIT_IS_ON(node->lines, j)) {
+    lcount = 0;
+    for (j = 1; j <= node->bmax; ++j) {
+      if (LINE_IS_COVERED(node->lines, j)) {
         if (lcount++) {
           fprintf(fp, ",");
         }
-        fprintf(fp, "%d", j+1);
+        fprintf(fp, "%d", j);
       }
     }
-    fprintf(fp, "]");
+    fprintf(fp, "],\"present\":[");
+    lcount = 0;
+    for (j = 1; j <= node->bmax; ++j) {
+      if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
+        if (lcount++) {
+          fprintf(fp, ",");
+        }
+        fprintf(fp, "%d", j);
+      }
+    }
+    fprintf(fp, "]}");
   }
   fprintf(fp, "}");
 }
 
-static void cover_node_set_line(CoverNode* node, int line) {
+static void cover_node_ensure(CoverNode* node, int line) {
   /* keep track of largest line seen so far */
   if (node->bmax < line) {
     node->bmax = line;
   }
 
-  --line; /* store line numbers zero-based */
-
   /* maybe we need to grow the bit set? */
-  int needed = line / CHAR_BIT + 1;
+  int needed = line / CHAR_LINE + 1;
   if (node->alen < needed) {
     /* start at COVER_INITIAL_SIZE, then duplicate the size, until we have */
     /* enough room */
@@ -145,14 +181,6 @@ static void cover_node_set_line(CoverNode* node, int line) {
 
     /* we are bigger now */
     node->alen = size;
-  }
-
-  /* if the line was not already registered, do so and keep track of how many */
-  /* lines we have seen so far */
-  if (! BIT_IS_ON(node->lines, line)) {
-    /* GLOG(("Adding line %d for [%s]", line, node->file)); */
-    ++node->bcnt;
-    BIT_TURN_ON(node->lines, line);
   }
 }
 

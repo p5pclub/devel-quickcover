@@ -22,7 +22,8 @@
 #define QC_CONFIG_METADATA         "metadata"
 #define QC_CONFIG_NOATEXIT         "noatexit"
 
-static Perl_ppaddr_t nextstate_orig = 0;
+static Perl_ppaddr_t nextstate_orig = 0, dbstate_orig = 0;
+static peep_t peepp_orig;
 static CoverList* cover = 0;
 static int enabled = 0;
 static Buffer output_dir;
@@ -34,11 +35,14 @@ static void qc_fini(void);
 static void qc_terminate(int nodump);
 static void qc_install(pTHX);
 static OP*  qc_nextstate(pTHX);
+static void qc_peep(pTHX_ OP* o);
 static void qc_dump(CoverList* cover);
 
 static void save_stuff(pTHX);
 static void save_output_directory(pTHX);
 static void save_metadata(pTHX);
+
+static void scan_optree(pTHX_ CoverList* cover, OP* op);
 
 static void qc_init(int noatexit)
 {
@@ -87,13 +91,17 @@ static void qc_install(pTHX)
 
     nextstate_orig = PL_ppaddr[OP_NEXTSTATE];
     PL_ppaddr[OP_NEXTSTATE] = qc_nextstate;
+    dbstate_orig = PL_ppaddr[OP_DBSTATE];
+    PL_ppaddr[OP_DBSTATE] = qc_nextstate;
+    peepp_orig = PL_peepp;
+    PL_peepp = qc_peep;
 
     GLOG(("qc_install: nextstate_orig is [%p]", nextstate_orig));
     GLOG(("qc_install:   qc_nextstate is [%p]", qc_nextstate));
 }
 
 static OP* qc_nextstate(pTHX) {
-    OP* ret = nextstate_orig(aTHX);
+    OP* ret = PL_op->op_type == OP_NEXTSTATE ? nextstate_orig(aTHX) : dbstate_orig(aTHX);
 
     if (enabled) {
         /* Restore original nextstate op for this node. */
@@ -106,10 +114,44 @@ static OP* qc_nextstate(pTHX) {
         }
 
         /* Now do our own nefarious tracking... */
-        cover_add(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
+        cover_add_covered(cover, CopFILE(PL_curcop), CopLINE(PL_curcop));
     }
 
     return ret;
+}
+
+static void qc_peep(pTHX_ OP *o)
+{
+    peepp_orig(aTHX_ o);
+
+    /* don't track eval STRING source code */
+    if (PL_in_eval && !(PL_in_eval & EVAL_INREQUIRE))
+        return;
+
+    if (enabled) {
+        /* Create data structure if necessary. */
+        if (!cover) {
+            cover = cover_create();
+            GLOG(("qc_peep: created cover data [%p]", cover));
+        }
+
+        /*
+         * the peephole is called on the start op, and should proceed
+         * in execution order, but we cheat because we don't need
+         * execution order and it's much simpler to perform a
+         * recursive scan of the tree
+         *
+         * This would be much simpler, and more natural, as a
+         * PL_check[OP_NEXTSTATE] override, but guess what? Perl does
+         * not call the check hook for OP_NEXTSTATE/DBSTATE
+         */
+        if (PL_compcv && o == CvSTART(PL_compcv))
+            scan_optree(aTHX_ cover, CvROOT(PL_compcv));
+        else if (o == PL_main_start)
+            scan_optree(aTHX_ cover, PL_main_root);
+        else if (o == PL_eval_start)
+            scan_optree(aTHX_ cover, PL_eval_root);
+    }
 }
 
 static void qc_dump(CoverList* cover)
@@ -237,6 +279,19 @@ static void save_metadata(pTHX)
     dump_hash(aTHX_ hv, &metadata);
     buffer_terminate(&metadata);
     GLOG(("Saved metadata [%s]", metadata.data));
+}
+
+static void scan_optree(pTHX_ CoverList* cover, OP* op)
+{
+  if (op->op_flags & OPf_KIDS) {
+    OP* curr;
+
+    for (curr = cUNOPx(op)->op_first; curr; curr = curr->op_sibling)
+      scan_optree(aTHX_ cover, curr);
+  }
+
+  if (op->op_type == OP_NEXTSTATE || op->op_type == OP_DBSTATE)
+    cover_add_line(cover, CopFILE(cCOPx(op)), CopLINE(cCOPx(op)));
 }
 
 
