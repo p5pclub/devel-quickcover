@@ -122,6 +122,9 @@ static OP* qc_nextstate(pTHX) {
 
 static void qc_peep(pTHX_ OP *o)
 {
+    if (!o || o->op_opt)
+        return;
+
     peepp_orig(aTHX_ o);
 
     /* don't track eval STRING source code */
