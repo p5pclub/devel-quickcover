@@ -148,11 +148,11 @@ static void qc_peep(pTHX_ OP *o)
          * PL_check[OP_NEXTSTATE] override, but guess what? Perl does
          * not call the check hook for OP_NEXTSTATE/DBSTATE
          */
-        if (PL_compcv && o == CvSTART(PL_compcv))
+        if (PL_compcv && o == CvSTART(PL_compcv) && CvROOT(PL_compcv))
             scan_optree(aTHX_ cover, CvROOT(PL_compcv));
-        else if (o == PL_main_start)
+        else if (o == PL_main_start && PL_main_root)
             scan_optree(aTHX_ cover, PL_main_root);
-        else if (o == PL_eval_start)
+        else if (o == PL_eval_start && PL_eval_root)
             scan_optree(aTHX_ cover, PL_eval_root);
     }
 }
