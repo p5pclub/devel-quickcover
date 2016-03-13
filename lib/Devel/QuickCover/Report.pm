@@ -26,7 +26,14 @@ sub load {
     my $data = read_file($file, { binmode => ':raw', err_mode => 'croak' });
     my $decoded = Sereal::decode_sereal($data);
 
-    $self->{data} = $decoded;
+    if (exists $decoded->{files}) {
+        $self->{data} = $decoded;
+    } else {
+        $self->{data} = {
+            files       => $decoded,
+            metadata    => {},
+        };
+    }
     $self->{changes} = 0;
 }
 
