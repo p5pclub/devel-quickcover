@@ -5,13 +5,13 @@ use warnings;
 
 # Generate a Devel::Cover-compatible report file from cover data.
 
-use Data::Dumper;
 use Digest::MD5 qw(md5_hex);
 use File::Path qw(make_path);
 use File::Slurp qw(read_file write_file);
 use Getopt::Long;
 use JSON::XS;
 use Sereal qw(encode_sereal decode_sereal);
+use Devel::QuickCover::Report;
 
 my $QC_DATABASE   = 'qc.dat';
 my $COVERDB       = './cover_db/';
@@ -36,10 +36,10 @@ $ENV{DEVEL_COVER_DB_FORMAT}
 exit main();
 
 sub main {
-    my $data = load_data($QC_DATABASE);
+    my $report = load_data($QC_DATABASE);
 
     make_coverdb_directories();
-    generate_cover_db($data);
+    generate_cover_db($report->coverage);
 
     return 0;
 }
@@ -57,14 +57,11 @@ sub make_coverdb_directories {
 
 sub load_data {
     my $file = shift;
+    my $report = Devel::QuickCover::Report->new;
 
-    my $data = read_file($file, { binmode => ':raw' })
-        or die "Can't read the data";
+    $report->load($file);
 
-    my $decoded = Sereal::decode_sereal($data)
-        or die "Can't decode the input data";
-
-    return $decoded;
+    return $report;
 }
 
 sub coverdb_decode {
