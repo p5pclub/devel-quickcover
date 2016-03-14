@@ -11,6 +11,7 @@ util.c
 util.h
 
 lib/Devel/QuickCover.pm
+lib/Devel/QuickCover/Report.pm
 
 bin/qc-aggregate.pl
 bin/qc-html.pl
