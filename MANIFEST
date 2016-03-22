@@ -12,9 +12,12 @@ util.h
 
 lib/Devel/QuickCover.pm
 lib/Devel/QuickCover/Report.pm
+lib/Devel/QuickCover/Report/Fetcher/Git.pm
+lib/Devel/QuickCover/Report/Html.pm
 
 bin/qc-aggregate.pl
 bin/qc-html.pl
+bin/qc-html-report.pl
 
 t/000-use.t
 t/001-basic.t
@@ -25,6 +28,12 @@ fixtures/cover-01.pl
 fixtures/cover-02.pl
 fixtures/cover-03.pl
 fixtures/cover-04.pl
+
+share/file.tmpl
+share/header.tmpl
+share/index.tmpl
+share/quickcover.css
+share/sorttable.js
 
 benchmark/benchmark.pl
 
