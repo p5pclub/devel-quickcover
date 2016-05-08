@@ -45,7 +45,7 @@ typedef struct Buffer {
     char* data;
     char fixed[  BUFFER_SIZEOF_DESIRED
                - 2*sizeof(unsigned int)
-               - 1*sizeof(char*)];
+               - 1*sizeof(char*) ];
 } Buffer;
 
 /*
@@ -58,8 +58,8 @@ typedef struct Buffer {
  */
 #define buffer_init(buffer, length) \
     do { \
-        buffer_zero(buffer); \
         unsigned int target = (length) > 0 ? ((length)+1) : BUFFER_SIZE_INIT; \
+        buffer_zero(buffer); \
         if ((length) > sizeof((buffer)->fixed)) { \
             target = BUFFER_SIZE_INIT; \
             while (target < (length)) { \
