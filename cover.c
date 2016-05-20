@@ -28,6 +28,24 @@
 static unsigned int max_collisions = 0;
 #endif
 
+/* Helper macro to output the compiler phase */
+#define OUTPUT_COMPILER_PHASE(name, op, id, more) \
+    do { \
+        fprintf(fp, "\"%s\":[", name); \
+        lcount = 0; \
+        for (j = 1; j <= node->bmax; ++j) { \
+          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) { \
+            if (LINE_GET_COMPILER_PHASE(node->phases, j) op id ) { \
+              if (lcount++) { \
+                fprintf(fp, ","); \
+              } \
+              fprintf(fp, "%d", j); \
+            } \
+          } \
+        } \
+        fprintf(fp, "]%s", more ? "," : ""); \
+    } while (0)
+
 /* Grow CoverNode bit set if necessary. */
 static void cover_node_ensure(CoverNode* node, int line);
 
@@ -157,89 +175,12 @@ void cover_dump(CoverList* cover, FILE* fp) {
 
     fprintf(fp, "],\"phases\":{");
 
-        fprintf(fp, "\"BEGIN\":[");
-        lcount = 0;
-        for (j = 1; j <= node->bmax; ++j) {
-          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
-            if (LINE_GET_COMPILER_PHASE(node->phases, j) <= PERL_PHASE_START ) {
-              if (lcount++) {
-                fprintf(fp, ",");
-              }
-              fprintf(fp, "%d", j);
-            }
-          }
-        }
-        fprintf(fp, "],");
-
-        fprintf(fp, "\"CHECK\":[");
-        lcount = 0;
-        for (j = 1; j <= node->bmax; ++j) {
-          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
-            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_CHECK ) {
-              if (lcount++) {
-                fprintf(fp, ",");
-              }
-              fprintf(fp, "%d", j);
-            }
-          }
-        }
-        fprintf(fp, "],");
-
-        fprintf(fp, "\"INIT\":[");
-        lcount = 0;
-        for (j = 1; j <= node->bmax; ++j) {
-          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
-            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_INIT ) {
-              if (lcount++) {
-                fprintf(fp, ",");
-              }
-              fprintf(fp, "%d", j);
-            }
-          }
-        }
-        fprintf(fp, "],");
-
-        fprintf(fp, "\"RUN\":[");
-        lcount = 0;
-        for (j = 1; j <= node->bmax; ++j) {
-          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
-            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_RUN ) {
-              if (lcount++) {
-                fprintf(fp, ",");
-              }
-              fprintf(fp, "%d", j);
-            }
-          }
-        }
-        fprintf(fp, "],");
-
-        fprintf(fp, "\"END\":[");
-        lcount = 0;
-        for (j = 1; j <= node->bmax; ++j) {
-          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
-            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_END ) {
-              if (lcount++) {
-                fprintf(fp, ",");
-              }
-              fprintf(fp, "%d", j);
-            }
-          }
-        }
-        fprintf(fp, "],");
-
-        fprintf(fp, "\"DESTRUCT\":[");
-        lcount = 0;
-        for (j = 1; j <= node->bmax; ++j) {
-          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
-            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_DESTRUCT ) {
-              if (lcount++) {
-                fprintf(fp, ",");
-              }
-              fprintf(fp, "%d", j);
-            }
-          }
-        }
-        fprintf(fp, "]");
+    OUTPUT_COMPILER_PHASE("BEGIN"   , <=, PERL_PHASE_START   , 1);
+    OUTPUT_COMPILER_PHASE("CHECK"   , ==, PERL_PHASE_CHECK   , 1);
+    OUTPUT_COMPILER_PHASE("INIT"    , ==, PERL_PHASE_INIT    , 1);
+    OUTPUT_COMPILER_PHASE("RUN"     , ==, PERL_PHASE_RUN     , 1);
+    OUTPUT_COMPILER_PHASE("END"     , ==, PERL_PHASE_END     , 1);
+    OUTPUT_COMPILER_PHASE("DESTRUCT", ==, PERL_PHASE_DESTRUCT, 0);
 
     fprintf(fp, "}"); /* close the `phases` object */
   }
