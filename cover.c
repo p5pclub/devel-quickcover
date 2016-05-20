@@ -80,8 +80,8 @@ void cover_destroy(CoverList* cover) {
     /* GLOG(("Destroying string [%s]", tmp->file)); */
     GMEM_DELSTR(tmp->file, -1);
     /* GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen)); */
-    GMEM_DELARR(tmp->lines, unsigned char*, tmp->alen, sizeof(unsigned char*));
-    GMEM_DELARR(tmp->phases, unsigned char*, tmp->alen, sizeof(unsigned char*));
+    GMEM_DELARR(tmp->lines , unsigned char*,   tmp->alen, sizeof(unsigned char));
+    GMEM_DELARR(tmp->phases, unsigned char*, 2*tmp->alen, sizeof(unsigned char));
     /* GLOG(("Destroying node [%p]", tmp)); */
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
     cover->list[i] = 0;
@@ -207,8 +207,8 @@ static void cover_node_ensure(CoverNode* node, int line) {
     /* GLOG(("Growing map for [%s] from %d to %d - %p", node->file, node->alen, size, node->lines)); */
 
     /* realloc will grow the data and keep all current values... */
-    GMEM_REALLOC(node->lines,  unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
-    GMEM_REALLOC(node->phases, unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
+    GMEM_REALLOC(node->lines,  unsigned char*,   node->alen * sizeof(unsigned char),   size * sizeof(unsigned char));
+    GMEM_REALLOC(node->phases, unsigned char*, 2*node->alen * sizeof(unsigned char), 2*size * sizeof(unsigned char));
 
     /* ... but it will not initialise the new space to 0. */
     memset(node->lines + node->alen, 0, size - node->alen);
