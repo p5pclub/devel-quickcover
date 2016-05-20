@@ -21,6 +21,7 @@ typedef struct CoverNode {
   char* file;                 /* file name */
   U32            hash;        /* hash of the file_name */
   unsigned char* lines;       /* bit set with the "covered lines" */
+  unsigned char* phases;      /* bit set with the phases of the "covered lines" */
   unsigned short alen;        /* current length of lines array */
   unsigned short bmax;        /* value of largest bit (line) seen so far */
   unsigned short bcnt;        /* number of different bits (lines) seen so far */
@@ -50,7 +51,7 @@ void cover_destroy(CoverList* cover);
  * Add an executed file:line to the CoverList; will create CoverNode
  * for file, if it doesn't already exist.
  */
-void cover_add_covered(CoverList* cover, const char* file, int line);
+void cover_add_covered(CoverList* cover, const char* file, int line, int phase);
 
 /*
  * Add a file:line to the CoverList; will create CoverNode for file, if it

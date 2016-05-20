@@ -22,6 +22,10 @@ sub test_fixture {
     my $got      = get_coverage_from_report( $file, $report );
     my $expected = parse_fixture( $file );
 
+    #use Data::Dumper;
+    #warn Dumper $report;
+    delete $report->{files}->{$file}->{phases};
+
     is_deeply( $got, $expected, "Got what we expected from the report for $file" );
 
     $report_fname

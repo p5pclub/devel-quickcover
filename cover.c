@@ -21,6 +21,8 @@
 #define LINE_IS_COVERED(data, line)    (data[line/CHAR_LINE] &   (1 << (line%CHAR_LINE)))
 #define LINE_IS_PRESENT_OR_COVERED(data, line)    (data[line/CHAR_LINE] &   (17 << (line%CHAR_LINE)))
 
+#define LINE_SET_COMPILER_PHASE(phases, line, phase) phases[line] = (char) phase
+#define LINE_GET_COMPILER_PHASE(phases, line)        (int) phases[line]
 /* Count of the hash collisions in the hash table */
 #ifdef GLOG_SHOW
 static unsigned int max_collisions = 0;
@@ -61,6 +63,7 @@ void cover_destroy(CoverList* cover) {
     GMEM_DELSTR(tmp->file, -1);
     /* GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen)); */
     GMEM_DELARR(tmp->lines, unsigned char*, tmp->alen, sizeof(unsigned char*));
+    GMEM_DELARR(tmp->phases, unsigned char*, tmp->alen, sizeof(unsigned char*));
     /* GLOG(("Destroying node [%p]", tmp)); */
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
     cover->list[i] = 0;
@@ -71,7 +74,7 @@ void cover_destroy(CoverList* cover) {
   GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
-void cover_add_covered(CoverList* cover, const char* file, int line) {
+void cover_add_covered(CoverList* cover, const char* file, int line, int phase) {
   CoverNode* node = 0;
 
   if (file[0] == '(')
@@ -89,6 +92,7 @@ void cover_add_covered(CoverList* cover, const char* file, int line) {
     /* GLOG(("Adding line %d for [%s]", line, node->file)); */
     ++node->bcnt;
     LINE_SET_COVERED(node->lines, line);
+    LINE_SET_COMPILER_PHASE(node->phases, line, phase);
   }
 }
 
@@ -150,9 +154,97 @@ void cover_dump(CoverList* cover, FILE* fp) {
         fprintf(fp, "%d", j);
       }
     }
-    fprintf(fp, "]}");
+
+    fprintf(fp, "],\"phases\":{");
+
+        fprintf(fp, "\"BEGIN\":[");
+        lcount = 0;
+        for (j = 1; j <= node->bmax; ++j) {
+          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
+            if (LINE_GET_COMPILER_PHASE(node->phases, j) <= PERL_PHASE_START ) {
+              if (lcount++) {
+                fprintf(fp, ",");
+              }
+              fprintf(fp, "%d", j);
+            }
+          }
+        }
+        fprintf(fp, "],");
+
+        fprintf(fp, "\"CHECK\":[");
+        lcount = 0;
+        for (j = 1; j <= node->bmax; ++j) {
+          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
+            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_CHECK ) {
+              if (lcount++) {
+                fprintf(fp, ",");
+              }
+              fprintf(fp, "%d", j);
+            }
+          }
+        }
+        fprintf(fp, "],");
+
+        fprintf(fp, "\"INIT\":[");
+        lcount = 0;
+        for (j = 1; j <= node->bmax; ++j) {
+          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
+            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_INIT ) {
+              if (lcount++) {
+                fprintf(fp, ",");
+              }
+              fprintf(fp, "%d", j);
+            }
+          }
+        }
+        fprintf(fp, "],");
+
+        fprintf(fp, "\"RUN\":[");
+        lcount = 0;
+        for (j = 1; j <= node->bmax; ++j) {
+          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
+            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_RUN ) {
+              if (lcount++) {
+                fprintf(fp, ",");
+              }
+              fprintf(fp, "%d", j);
+            }
+          }
+        }
+        fprintf(fp, "],");
+
+        fprintf(fp, "\"END\":[");
+        lcount = 0;
+        for (j = 1; j <= node->bmax; ++j) {
+          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
+            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_END ) {
+              if (lcount++) {
+                fprintf(fp, ",");
+              }
+              fprintf(fp, "%d", j);
+            }
+          }
+        }
+        fprintf(fp, "],");
+
+        fprintf(fp, "\"DESTRUCT\":[");
+        lcount = 0;
+        for (j = 1; j <= node->bmax; ++j) {
+          if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
+            if (LINE_GET_COMPILER_PHASE(node->phases, j) == PERL_PHASE_DESTRUCT ) {
+              if (lcount++) {
+                fprintf(fp, ",");
+              }
+              fprintf(fp, "%d", j);
+            }
+          }
+        }
+        fprintf(fp, "]");
+
+    fprintf(fp, "}"); /* close the `phases` object */
   }
-  fprintf(fp, "}");
+  fprintf(fp, "}"); /* close the file object */
+  fprintf(fp, "}"); /* close the main object */
 }
 
 static void cover_node_ensure(CoverNode* node, int line) {
@@ -174,7 +266,8 @@ static void cover_node_ensure(CoverNode* node, int line) {
     /* GLOG(("Growing map for [%s] from %d to %d - %p", node->file, node->alen, size, node->lines)); */
 
     /* realloc will grow the data and keep all current values... */
-    GMEM_REALLOC(node->lines, unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
+    GMEM_REALLOC(node->lines,  unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
+    GMEM_REALLOC(node->phases, unsigned char*, node->alen * sizeof(unsigned char*), size * sizeof(unsigned char*));
 
     /* ... but it will not initialise the new space to 0. */
     memset(node->lines + node->alen, 0, size - node->alen);
@@ -244,9 +337,10 @@ static CoverNode* add_get_node(CoverList *cover, const char *file) {
   /* TODO: normalise name first? ./foo.pl, foo.pl, ../bar/foo.pl, etc. */
   int l = 0;
   GMEM_NEWSTR(node->file, file, -1, l);
-  node->lines = NULL;
-  node->hash = hash;
-  node->alen = node->bcnt = node->bmax = 0;
+  node->lines  = NULL;
+  node->phases = NULL;
+  node->hash   = hash;
+  node->alen   = node->bcnt = node->bmax = 0;
 
   ++cover->used;
   cover->list[pos] = node;

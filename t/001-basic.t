@@ -23,6 +23,10 @@ my ($report_fname, $report) = read_report($dir)
 my $got      = get_coverage_from_report(__FILE__, $report);
 my $expected = parse_fixture(__FILE__);
 
+#use Data::Dumper;
+#warn Dumper $report;
+delete $report->{files}->{+__FILE__}->{phases};
+
 is_deeply($got, $expected, "Report only contains the half-open interval ]start(), end()]");
 
 done_testing;
