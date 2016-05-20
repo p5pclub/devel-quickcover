@@ -11,7 +11,7 @@
 #define CHAR_LINE 4
 
 /* How big will the initial bit set allocation be. */
-#define COVER_INITIAL_SIZE 16   /* 8 * CHAR_BIT = 64 bits (lines) */
+#define COVER_INITIAL_SIZE 16   /* 16 * CHAR_BIT = 64 bits (lines) */
 
 #define COVER_LIST_INITIAL_SIZE 8   /* 8 files in the hash */
 
@@ -50,7 +50,7 @@ static unsigned int max_collisions = 0;
 static void cover_node_ensure(CoverNode* node, int line);
 
 /* Add a node to the list of files */
-static CoverNode* add_get_node(CoverList *cover, const char *file);
+static CoverNode* add_get_node(CoverList* cover, const char* file);
 
 CoverList* cover_create(void) {
   CoverList* cover;
@@ -58,7 +58,7 @@ CoverList* cover_create(void) {
 
   cover->used = 0;
   cover->size = COVER_LIST_INITIAL_SIZE;
-  GMEM_NEWARR(cover->list, CoverNode**, COVER_LIST_INITIAL_SIZE, sizeof(CoverNode *));
+  GMEM_NEWARR(cover->list, CoverNode**, COVER_LIST_INITIAL_SIZE, sizeof(CoverNode*));
 
   return cover;
 }
@@ -88,7 +88,7 @@ void cover_destroy(CoverList* cover) {
   }
 
   GLOG(("Destroying cover [%p]. Max run %d. Used: %d", cover, max_collisions, cover->used));
-  GMEM_DELARR(cover->list, CoverNode**, cover->size, sizeof(CoverNode *));
+  GMEM_DELARR(cover->list, CoverNode**, cover->size, sizeof(CoverNode*));
   GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
@@ -218,7 +218,7 @@ static void cover_node_ensure(CoverNode* node, int line) {
   }
 }
 
-static U32 find_pos(CoverNode **where, U32 hash, const char *file, int size) {
+static U32 find_pos(CoverNode** where, U32 hash, const char* file, int size) {
   U32 pos = hash % size;
 
 #ifdef GLOG_SHOW
@@ -244,15 +244,16 @@ static U32 find_pos(CoverNode **where, U32 hash, const char *file, int size) {
   return pos;
 }
 
-static CoverNode* add_get_node(CoverList *cover, const char *file) {
+static CoverNode* add_get_node(CoverList* cover, const char* file) {
   U32 hash, pos, i;
-  CoverNode *node = NULL, **new_list = NULL;
+  CoverNode* node = NULL;
+  CoverNode** new_list = NULL;
   ssize_t len = strlen(file);
 
   /* TODO: comment these magic numbers */
   /* TODO: move this enlargement code to a separate function */
   if (3 * cover->used > 2 * cover->size) {
-    GMEM_NEWARR(new_list, CoverNode**, cover->size * 2, sizeof(CoverNode *));
+    GMEM_NEWARR(new_list, CoverNode**, cover->size * 2, sizeof(CoverNode*));
     for (i = 0; i < cover->size; i++) {
       if (!cover->list[i]) {
         continue;
@@ -261,7 +262,7 @@ static CoverNode* add_get_node(CoverList *cover, const char *file) {
       new_list[pos] = cover->list[i];
     }
 
-    GMEM_DELARR(cover->list, CoverNode**, cover->size, sizeof(CoverNode *));
+    GMEM_DELARR(cover->list, CoverNode**, cover->size, sizeof(CoverNode*));
     cover->list = new_list;
     cover->size *= 2;
   }

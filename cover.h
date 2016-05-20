@@ -32,7 +32,7 @@ typedef struct CoverNode {
  * A placeholder for the linked list with file coverage information.
  */
 typedef struct CoverList {
-  CoverNode **list;
+  CoverNode** list;
   unsigned int used;
   unsigned int size;
 } CoverList;
