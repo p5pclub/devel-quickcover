@@ -38,6 +38,7 @@ sub fetch {
     };
     my ($hash, $type, $length) = split / /, $header;
 
+    return '' if $hash eq 'symlink' || $hash eq 'dangling' || $hash eq 'loop' || $hash eq 'nodir';
     return '' if $type eq "missing\n";
     read $self->{out}, my $buffer, $length, 0;
     read $self->{out}, my $newlinw, 1;
