@@ -1,3 +1,11 @@
+0.600000    2016-06-02
+            * Added support for gathering information about
+              Perl compiler phases.
+              Thanks to Stevan Little.
+            * Fixed mistakes in memory allocation, and
+              improved integration of Stevan's changes
+              into the rest of the module.
+              Thanks to Vikentiy Fesunov.
 0.500000    2016-02-29
             * Many great improvements by Mattia Barbon:
               + Hook dbstate as well as nextstate, to allow
