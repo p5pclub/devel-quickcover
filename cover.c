@@ -8,21 +8,24 @@
 #include "gmem.h"
 #include "cover.h"
 
-#define CHAR_LINE 4
+#define CHAR_LINE 2
 
 /* How big will the initial bit set allocation be. */
 #define COVER_INITIAL_SIZE 16   /* 16 * CHAR_BIT = 64 bits (lines) */
 
 #define COVER_LIST_INITIAL_SIZE 8   /* 8 files in the hash */
 
-/* Handle an array of unsigned char as a bit set. */
-#define LINE_SET_COVERED(data, line)   data[line/CHAR_LINE] |=  (1 << (line%CHAR_LINE))
-#define LINE_SET_PRESENT(data, line)   data[line/CHAR_LINE] |=  (16 << (line%CHAR_LINE))
-#define LINE_IS_COVERED(data, line)    (data[line/CHAR_LINE] &   (1 << (line%CHAR_LINE)))
-#define LINE_IS_PRESENT_OR_COVERED(data, line)    (data[line/CHAR_LINE] &   (17 << (line%CHAR_LINE)))
+/* Handle an array of unsigned char as an array of 4 bit values per line,
+ * where bits 0-2 encode coverage and compiler phase (PL_phase has numeric
+ * values from 0 to 6), and bit 3 is presence flag.
+ */
+#define LINE_SHIFT(line)                      ((line%CHAR_LINE)*4)
+#define LINE_SET_COVERED(data, line, phase)     data[line/CHAR_LINE] |= ((phase+1) << LINE_SHIFT(line))
+#define LINE_SET_PRESENT(data, line)            data[line/CHAR_LINE] |= (8 << LINE_SHIFT(line))
+#define LINE_IS_COVERED(data, line)           ((data[line/CHAR_LINE] & ( 7 << LINE_SHIFT(line))) != 0)
+#define LINE_IS_PRESENT_OR_COVERED(data, line) (data[line/CHAR_LINE] & (15 << LINE_SHIFT(line)))
+#define LINE_GET_COMPILER_PHASE(data, line)  (((data[line/CHAR_LINE] >> LINE_SHIFT(line)) & 7) - 1)
 
-#define LINE_SET_COMPILER_PHASE(phases, line, phase) phases[line] = (char) phase
-#define LINE_GET_COMPILER_PHASE(phases, line)        (int) phases[line]
 /* Count of the hash collisions in the hash table */
 #ifdef GLOG_SHOW
 static unsigned int max_collisions = 0;
@@ -35,7 +38,7 @@ static unsigned int max_collisions = 0;
         lcount = 0; \
         for (j = 1; j <= node->bmax; ++j) { \
           if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) { \
-            if (LINE_GET_COMPILER_PHASE(node->phases, j) op id ) { \
+            if (LINE_GET_COMPILER_PHASE(node->lines, j) op id ) { \
               if (lcount++) { \
                 fprintf(fp, ","); \
               } \
@@ -81,7 +84,6 @@ void cover_destroy(CoverList* cover) {
     GMEM_DELSTR(tmp->file, -1);
     /* GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen)); */
     GMEM_DELARR(tmp->lines , unsigned char*,   tmp->alen, sizeof(unsigned char));
-    GMEM_DELARR(tmp->phases, unsigned char*, 2*tmp->alen, sizeof(unsigned char));
     /* GLOG(("Destroying node [%p]", tmp)); */
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
     cover->list[i] = 0;
@@ -109,8 +111,7 @@ void cover_add_covered(CoverList* cover, const char* file, int line, int phase) 
   if (! LINE_IS_COVERED(node->lines, line)) {
     /* GLOG(("Adding line %d for [%s]", line, node->file)); */
     ++node->bcnt;
-    LINE_SET_COVERED(node->lines, line);
-    LINE_SET_COMPILER_PHASE(node->phases, line, phase);
+    LINE_SET_COVERED(node->lines, line, phase);
   }
 }
 
@@ -208,7 +209,6 @@ static void cover_node_ensure(CoverNode* node, int line) {
 
     /* realloc will grow the data and keep all current values... */
     GMEM_REALLOC(node->lines,  unsigned char*,   node->alen * sizeof(unsigned char),   size * sizeof(unsigned char));
-    GMEM_REALLOC(node->phases, unsigned char*, 2*node->alen * sizeof(unsigned char), 2*size * sizeof(unsigned char));
 
     /* ... but it will not initialise the new space to 0. */
     memset(node->lines + node->alen, 0, size - node->alen);
@@ -280,7 +280,6 @@ static CoverNode* add_get_node(CoverList* cover, const char* file) {
   int l = 0;
   GMEM_NEWSTR(node->file, file, -1, l);
   node->lines  = NULL;
-  node->phases = NULL;
   node->hash   = hash;
   node->alen   = node->bcnt = node->bmax = 0;
 

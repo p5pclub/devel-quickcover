@@ -21,7 +21,6 @@ typedef struct CoverNode {
   char* file;                 /* file name */
   U32            hash;        /* hash of the file_name */
   unsigned char* lines;       /* bit set with the "covered lines" */
-  unsigned char* phases;      /* bit set with the phases of the "covered lines" */
   unsigned short alen;        /* current length of lines array */
   unsigned short bmax;        /* value of largest bit (line) seen so far */
   unsigned short bcnt;        /* number of different bits (lines) seen so far */
