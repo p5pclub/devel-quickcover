@@ -11,7 +11,7 @@
 #define CHAR_LINE 2
 
 /* How big will the initial bit set allocation be. */
-#define COVER_INITIAL_SIZE 16   /* 16 * CHAR_BIT = 64 bits (lines) */
+#define COVER_INITIAL_SIZE 16   /* 16 * CHAR_BIT = 128 bits (lines) */
 
 #define COVER_LIST_INITIAL_SIZE 8   /* 8 files in the hash */
 
