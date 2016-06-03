@@ -285,7 +285,7 @@ static void scan_optree(pTHX_ CoverList* cover, OP* op)
   if (op->op_flags & OPf_KIDS) {
     OP* curr;
 
-    for (curr = cUNOPx(op)->op_first; curr; curr = curr->op_sibling)
+    for (curr = cUNOPx(op)->op_first; curr; curr = OpSIBLING(curr))
       scan_optree(aTHX_ cover, curr);
   }
 
