@@ -22,6 +22,10 @@
 #define QC_CONFIG_METADATA         "metadata"
 #define QC_CONFIG_NOATEXIT         "noatexit"
 
+#ifndef OpSIBLING
+#define OpSIBLING(op) ((op)->op_sibling)
+#endif
+
 static Perl_ppaddr_t nextstate_orig = 0, dbstate_orig = 0;
 static peep_t peepp_orig;
 static CoverList* cover = 0;
