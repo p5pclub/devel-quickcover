@@ -10,7 +10,7 @@ use File::Copy;
 use File::ShareDir;
 use File::Spec::Functions;
 use IO::Compress::Gzip;
-use POSIX;
+use POSIX qw(strftime);
 use Text::MicroTemplate;
 
 our $VERSION = '0.01';
