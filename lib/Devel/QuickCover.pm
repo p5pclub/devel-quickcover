@@ -13,7 +13,7 @@ my %DEFAULT_CONFIG = (
     noatexit         => 0,      # Don't register an atexit handler to dump and cleanup
     nostart          => 0,      # Don't start gathering coverage information on import
     nodump           => 0,      # Don't dump the coverage report at the END of the program
-    output_directory => "/tmp", # Write report to that directory
+    output_directory => '/tmp', # Write report to that directory
     metadata         => {}    , # Additional context information
 );
 our %CONFIG;
@@ -21,7 +21,7 @@ our %CONFIG;
 sub import {
     my ($class, @opts) = @_;
 
-    croak("Invalid argument to import, it takes key-value pairs. FOO => BAR")
+    croak('Invalid argument to import, it takes key-value pairs. FOO => BAR')
         if 1 == @opts % 2;
     my %options = @opts;
 
@@ -33,7 +33,7 @@ sub import {
     }
 
     if (keys %options > 0) {
-        croak("Invalid import option(s): " . join(',', keys %options));
+        croak('Invalid import option(s): ' . join ',', keys %options);
     }
 
     if (!$CONFIG{'nostart'}) {
