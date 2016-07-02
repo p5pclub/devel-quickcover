@@ -189,7 +189,7 @@ sub _get_template {
     my $path = File::ShareDir::dist_file('Devel-QuickCover', $basename);
     my $tmpl = do {
         local $/;
-        open my $fh, '<:utf8', $path or die "Unable to open '$path': $!";
+        open my $fh, '<:encoding(UTF-8)', $path or die "Unable to open '$path': $!";
         readline $fh;
     };
 
