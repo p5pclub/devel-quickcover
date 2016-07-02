@@ -2,7 +2,7 @@ package Devel::QuickCover;
 
 use strict;
 use warnings;
-
+use Carp 'croak';
 use XSLoader;
 
 our $VERSION = '0.600100';
@@ -21,7 +21,8 @@ our %CONFIG;
 sub import {
     my ($class, @opts) = @_;
 
-    die "Invalid argument to import, it takes key-value pairs. FOO => BAR" if 1 == @opts % 2;
+    croak("Invalid argument to import, it takes key-value pairs. FOO => BAR")
+        if 1 == @opts % 2;
     my %options = @opts;
 
     %CONFIG = %DEFAULT_CONFIG;
@@ -32,7 +33,7 @@ sub import {
     }
 
     if (keys %options > 0) {
-        die "Invalid import option(s): " . join(',', keys %options) ;
+        croak("Invalid import option(s): " . join(',', keys %options));
     }
 
     if (!$CONFIG{'nostart'}) {
