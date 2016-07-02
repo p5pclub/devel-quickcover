@@ -141,7 +141,7 @@ sub _render_file {
     my $source = $self->_fetch_source($item);
 
     return unless $source;
-    my $lines = ['I hope you never shee this...', split /\n/, $source];
+    my $lines = ['I hope you never see this...', split /\n/, $source];
 
     $self->_write_template(
         $TEMPLATES{file},
