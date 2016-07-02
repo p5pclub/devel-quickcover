@@ -1,7 +1,6 @@
 use t::lib::Test;
 
 use JSON::XS    qw(encode_json   decode_json);
-use File::Slurp qw(read_file     write_file);
 use File::Temp  qw(tempdir);
 
 my $dir;

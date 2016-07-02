@@ -7,7 +7,7 @@ use warnings;
 
 use Digest::MD5 qw(md5_hex);
 use File::Path qw(make_path);
-use File::Slurp qw(read_file write_file);
+use Path::Tiny qw(path);
 use Getopt::Long;
 use JSON::XS;
 use Sereal qw(encode_sereal decode_sereal);
@@ -83,7 +83,7 @@ sub generate_cover_db {
     my $digests  = {};
 
     if (-r $DIGESTS) {
-        my $digests_data = read_file($DIGESTS, { binmode => ':raw' });
+        my $digests_data = path($DIGESTS)->slurp_raw;
         $digests //= coverdb_decode( $digests_data );
     }
 
@@ -115,19 +115,21 @@ sub generate_cover_db {
         $run->{digests}{$file}          = $md5;
     }
 
-    write_file( $DIGESTS, { binmode => ':raw' }, coverdb_encode( $digests ) );
+    path($DIGESTS)->spew_raw( coverdb_encode($digests) );
 
     my $run_id = rand(1000);
     my $run_structure = { runs => { $run_id => $run } };
     mkdir ( "$RUNS/$run_id" );
 
-    write_file ( "$RUNS/$run_id/cover.14", { binmode => ':raw' }, coverdb_encode( $run_structure ) );
+    path("$RUNS/$run_id/cover.14")->spew_raw(
+        coverdb_encode( $run_structure )
+    );
 }
 
 sub process_file_structure {
     my ($file, $statements, $digests) = @_;
 
-    my $content = read_file($file, { binmode => ':raw'});
+    my $content = path($file)->slurp_raw;
     my $md5     = md5_hex( $content );
 
     if (! exists($digests->{ $md5 })) {
@@ -148,5 +150,5 @@ sub write_structure {
         subroutine => [],
     };
 
-    write_file( "$STRUCTURE/$md5", { binmode => ':raw' }, coverdb_encode( $structure ));
+    path("$STRUCTURE/$md5")->spew_raw( coverdb_encode( $structure ) );
 }
