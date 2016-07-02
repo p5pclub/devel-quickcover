@@ -166,7 +166,7 @@ sub _fetch_source {
             $item->{git_prefix}, $item->{git_repository}, $item->{git_commit},
         );
         my $source = $fetcher->fetch($item->{file_name});
-        return $source ? $$source : undef;;
+        return $source ? $$source : undef;
     }
 
     return undef unless -f $item->{file_name};
