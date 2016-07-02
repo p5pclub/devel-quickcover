@@ -13,9 +13,15 @@ WriteMakefile(
     PREREQ_PM      => {
         'XSLoader'              => 0,
         'JSON::XS'              => 0,
+        'Sereal'                => 0,
         'IO::Compress::Gzip'    => 0,
+        'IPC::Open2'            => 0,
+        'autodie'               => 0,
         'Text::MicroTemplate'   => 0,
         'File::ShareDir'        => 0,
+        'File::Copy'            => 0,
+        'File::Spec'            => 0,
+        'File::Slurp'            => 0,
     },
     TEST_REQUIRES  => {
         'Test::More'            => 0,
