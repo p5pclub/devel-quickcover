@@ -10,7 +10,7 @@ use File::Copy;
 use File::ShareDir;
 use File::Spec::Functions;
 use IO::Compress::Gzip;
-use POSIX;
+use POSIX qw(strftime);
 use Text::MicroTemplate;
 
 our $VERSION = '0.01';
@@ -141,7 +141,7 @@ sub _render_file {
     my $source = $self->_fetch_source($item);
 
     return unless $source;
-    my $lines = ['I hope you never shee this...', split /\n/, $source];
+    my $lines = ['I hope you never see this...', split /\n/, $source];
 
     $self->_write_template(
         $TEMPLATES{file},
@@ -166,7 +166,7 @@ sub _fetch_source {
             $item->{git_prefix}, $item->{git_repository}, $item->{git_commit},
         );
         my $source = $fetcher->fetch($item->{file_name});
-        return $source ? $$source : undef;;
+        return $source ? $$source : undef;
     }
 
     return undef unless -f $item->{file_name};
@@ -189,7 +189,7 @@ sub _get_template {
     my $path = File::ShareDir::dist_file('Devel-QuickCover', $basename);
     my $tmpl = do {
         local $/;
-        open my $fh, '<:utf8', $path or die "Unable to open '$path': $!";
+        open my $fh, '<:encoding(UTF-8)', $path or die "Unable to open '$path': $!";
         readline $fh;
     };
 
