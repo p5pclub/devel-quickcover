@@ -5,7 +5,7 @@ use warnings;
 use Carp 'croak';
 use XSLoader;
 
-our $VERSION = '0.600100';
+our $VERSION = '0.700000';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
@@ -73,7 +73,7 @@ Devel::QuickCover - Quick & dirty code coverage for Perl
 
 =head1 VERSION
 
-Version 0.600100
+Version 0.700000
 
 =head1 SYNOPSIS
 

@@ -1,3 +1,10 @@
+0.700000    2016-07-04
+            * Fixed unbalanced braces; easiest seen when running
+              as "perl -MDevel::QuickCover -E1".
+              Thanks to Vytas Dauksa.
+            * Several cleanups and improvements.
+              Thanks to SawyerX.
+
 0.600100    2016-06-03
             * Fixed compilation on newer Perls.
 
