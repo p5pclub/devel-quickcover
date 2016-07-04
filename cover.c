@@ -163,7 +163,7 @@ void cover_dump(CoverList* cover, FILE* fp) {
         fprintf(fp, "%d", j);
       }
     }
-    fprintf(fp, "],\"present\":[");
+    fprintf(fp, "],\"present\":["); /* close the `covered` object */
     lcount = 0;
     for (j = 1; j <= node->bmax; ++j) {
       if (LINE_IS_PRESENT_OR_COVERED(node->lines, j)) {
@@ -174,7 +174,7 @@ void cover_dump(CoverList* cover, FILE* fp) {
       }
     }
 
-    fprintf(fp, "],\"phases\":{");
+    fprintf(fp, "],\"phases\":{"); /* close the `present` object */
 
     OUTPUT_COMPILER_PHASE("BEGIN"   , <=, PERL_PHASE_START   , 1);
     OUTPUT_COMPILER_PHASE("CHECK"   , ==, PERL_PHASE_CHECK   , 1);
@@ -184,9 +184,9 @@ void cover_dump(CoverList* cover, FILE* fp) {
     OUTPUT_COMPILER_PHASE("DESTRUCT", ==, PERL_PHASE_DESTRUCT, 0);
 
     fprintf(fp, "}"); /* close the `phases` object */
+    fprintf(fp, "}"); /* close the `list of files` object */
   }
-  fprintf(fp, "}"); /* close the file object */
-  fprintf(fp, "}"); /* close the main object */
+  fprintf(fp, "}"); /* close the `files` object */
 }
 
 static void cover_node_ensure(CoverNode* node, int line) {
