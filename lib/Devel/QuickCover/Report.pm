@@ -5,7 +5,7 @@ use warnings;
 
 use JSON::XS    qw(encode_json   decode_json);
 use Sereal      qw(encode_sereal decode_sereal);
-use File::Slurp qw(read_file     write_file);
+use Path::Tiny  qw(path);
 
 sub new {
     my ($class) = @_;
@@ -23,7 +23,7 @@ sub new {
 sub load {
     my ($self, $file) = @_;
 
-    my $data = read_file($file, { binmode => ':raw', err_mode => 'croak' });
+    my $data = path($file)->slurp_raw;
     my $decoded = Sereal::decode_sereal($data);
 
     if (exists $decoded->{files}) {
@@ -41,14 +41,14 @@ sub save {
     my ($self, $file) = @_;
 
     my $encoded = Sereal::encode_sereal($self->{data});
-    write_file($file, { binmode => ':raw', err_mode => 'croak' }, $encoded);
+    path($file)->spew_raw($encoded);
     $self->{changes} = 0;
 }
 
 sub merge {
     my ($self, $file) = @_;
 
-    my $json = read_file($file, { err_mode => 'croak' });
+    my $json = path($file)->slurp;
     my $decoded = decode_json($json);
     my $files = $self->{data}{files};
 

@@ -1,10 +1,12 @@
 package t::lib::Test;
-
+use strict;
+use warnings;
 use parent 'Test::Builder::Module';
 
+use Data::Dumper;
 use Test::More;
 use JSON::XS    qw( decode_json );
-use File::Slurp qw( read_file );
+use Path::Tiny  qw( path );
 
 our @EXPORT= (
      @Test::More::EXPORT,
@@ -12,7 +14,7 @@ our @EXPORT= (
         read_report
         get_coverage_from_report
         parse_fixture
-     )
+     ),
 );
 
 sub import {
@@ -33,7 +35,7 @@ sub read_report {
 
     my ($fname) =  @files;
 
-    my $json = read_file($fname)
+    my $json = path($fname)->slurp
         or return;
 
     my $decoded = decode_json($json)
@@ -47,16 +49,13 @@ sub get_coverage_from_report {
 
     my $lines = $report->{files}{$file};
 
-    return $lines
+    return $lines;
 }
 
 sub parse_fixture {
     my $file = shift;
 
-    my $content = read_file($file);
-    my @lines = split /\n/, $content;
-
-    use Data::Dumper;
+    my @lines = path($file)->lines;
 
     my @expected =
         map  +($_->[0]),                         # linenos
