@@ -17,11 +17,30 @@ my $QC_DATABASE   = 'qc.dat';
 my $COVERDB       = './cover_db/';
 my $VERBOSE       = 0;
 my %PATH_REWRITES = ();
+my $HELP;
+my $HELP_MSG =<<END;
+qc-html.pl - Generate a Devel::Cover-compatible report file from cover data.
+
+USE:
+
+    qc-html.pl [OPTION...]
+
+By default, qc-html.pl reads data from the Devel::QuickCover database
+$QC_DATABASE and writes its output to the folder $COVERDB.
+
+OPTIONS:
+
+    --input         Devel::QuickCover database to read from. Default $QC_DATABASE.
+    --cover-db      Devel::Cover database to write to. Default $COVERDB.
+    --verbose       Verbose level. Default 0.
+    -h, --help      Print this message and exit.
+END
 
 GetOptions('input=s'         => \$QC_DATABASE,
            'cover-db=s'      => \$COVERDB,
            'verbose=i'       => \$VERBOSE,
            'path-rewrite=s%' => \%PATH_REWRITES,
+           'h|help'          => \$HELP,
 );
 
 my $DIGESTS       = "$COVERDB/digests";
@@ -36,6 +55,11 @@ $ENV{DEVEL_COVER_DB_FORMAT}
 exit main();
 
 sub main {
+    if (defined $HELP) {
+        print $HELP_MSG;
+        return 0;
+    }
+
     my $report = load_data($QC_DATABASE);
 
     make_coverdb_directories();

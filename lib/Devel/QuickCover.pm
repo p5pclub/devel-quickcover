@@ -116,6 +116,21 @@ When you call C<end()>, you can optionally pass a C<nodump>
 boolean argument, to indicate whether you wish to skip generating
 the cover files.
 
+=head1 Use with Devel::Cover
+
+Devel::QuickCover is distributed with the scripts qc-aggregate.pl and
+qc-html.pl that can be used to convert its output into a format that
+Devel::Cover understands. Once you have generated your coverage reports,
+aggregate them by running
+
+    qc-aggregate.pl
+
+and convert them into the Devel::Cover database format by running
+
+    qc-html.pl
+
+Then you can view the reports with the standard Devel::Cover tools.
+
 =head1 AUTHORS
 
 =over 4
