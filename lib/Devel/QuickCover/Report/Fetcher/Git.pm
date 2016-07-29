@@ -37,11 +37,13 @@ sub fetch {
         readline $self->{out};
     };
     my ($hash, $type, $length) = split / /, $header;
+    my $nohash = $hash eq 'symlink' || $hash eq 'dangling' || $hash eq 'loop' || $hash eq 'nodir';
+    $length = $type if $nohash;
 
-    return '' if $hash eq 'symlink' || $hash eq 'dangling' || $hash eq 'loop' || $hash eq 'notdir';
     return '' if $type eq "missing\n";
     read $self->{out}, my $buffer, $length, 0;
     read $self->{out}, my $newlinw, 1;
+    return '' if $nohash;
 
     return \$buffer;
 }
