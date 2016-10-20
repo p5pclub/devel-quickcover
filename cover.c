@@ -226,8 +226,8 @@ static U32 find_pos(CoverNode** where, U32 hash, const char* file, int size) {
 #endif
 
   while (where[pos] &&
-         hash != where[pos]->hash &&
-         strcmp(file, where[pos]->file) != 0) {
+         (hash != where[pos]->hash ||
+          strcmp(file, where[pos]->file) != 0)) {
     pos = (pos + 1) % size;
 
 #ifdef GLOG_SHOW
