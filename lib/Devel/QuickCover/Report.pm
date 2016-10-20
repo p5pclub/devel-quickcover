@@ -12,6 +12,7 @@ sub new {
     my $self = bless {
         data    => {
             files       => {},
+            subs        => {},
             metadata    => {},
         },
         changes => 0,
@@ -51,6 +52,7 @@ sub merge {
     my $json = path($file)->slurp;
     my $decoded = decode_json($json);
     my $files = $self->{data}{files};
+    my $subs = $self->{data}{subs};
 
     # I don't think custom merging functions are needed
     @{$self->{data}{metadata}}{keys %{$decoded->{metadata}}} =
@@ -63,6 +65,9 @@ sub merge {
         }
         for my $line (@{$coverage->{present}}) {
             $files->{$name}->{$line} //= 0;
+        }
+        for my $sub (keys %{$coverage->{subs}}) {
+            $subs->{$name}->{$sub} ||= $coverage->{subs}->{$sub};
         }
         $self->{changes} += @{$coverage->{covered}};
     }
@@ -78,6 +83,12 @@ sub coverage {
     my ($self) = @_;
 
     return $self->{data}{files};
+}
+
+sub subs {
+    my ($self) = @_;
+
+    return $self->{data}{subs};
 }
 
 sub filenames {

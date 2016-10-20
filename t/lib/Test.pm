@@ -66,8 +66,15 @@ sub parse_fixture {
         map  +($_->[0]),                         # linenos
         grep +($_->[1] =~ /YES|NO/),             # look for lines marked with YES or NO
         map  [ $_ + 1, $lines[$_] ], 0..$#lines; # enumerate
+    my %subs =
+        map  {
+            my ($name, $phase) = $_->[1] =~ m{\bSUB,([^,]+),([^,]*)\n$};
 
-    return {"covered" => \@expected, "present" => \@present};
+            ("$name,$_->[0]" => $phase);
+        } grep +($_->[1] =~ /SUB,/),               # look for lines marked with SUB,
+        map  [ $_ + 1, $lines[$_] ], 0..$#lines; # enumerate
+
+    return {"covered" => \@expected, "present" => \@present, subs => \%subs};
 }
 
 

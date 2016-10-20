@@ -14,14 +14,16 @@
       <table class="sortable">
         <caption>Files, sorted by exclusive sample count</caption>
         <tr>
-          <th class="sorttable_sorted">Coverage</th>
+          <th class="sorttable_sorted">Lines</th>
+          <th class="sorttable_sorted">Subs</th>
           <th>File</th>
         </tr>
 <? my ($format_ratio, $color_code) = @variables{qw(format_ratio color_code)};
    for my $file (@{$variables{files}}) {
  ?>
         <tr>
-          <td sorttable_customkey="<?= $file->{percentage} ?>" class="coverage-number <?= $color_code->($file->{percentage}) ?>"><?= $format_ratio->($file->{percentage}) ?></td>
+          <td sorttable_customkey="<?= $file->{line_percentage} ?>" class="coverage-number <?= $color_code->($file->{line_percentage}) ?>"><?= $format_ratio->($file->{line_percentage}) ?></td>
+          <td sorttable_customkey="<?= $file->{sub_percentage} ?>" class="coverage-number <?= $color_code->($file->{sub_percentage}) ?>"><?= $format_ratio->($file->{sub_percentage}) ?></td>
           <td><a href="<?= $file->{report_name} ?>"><?= $file->{display_name} ?></a></td>
         </tr>
 ?  }

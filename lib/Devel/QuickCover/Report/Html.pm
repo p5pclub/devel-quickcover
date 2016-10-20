@@ -35,7 +35,8 @@ sub new {
 sub add_report {
     my ($self, $report, $repositories) = @_;
     my $files = $report->filenames;
-    my $coverage = $report->coverage;
+    my $lines = $report->coverage;
+    my $subs = $report->subs;
     my ($prefix_rx, %prefix_map);
 
     if ($repositories && @$repositories) {
@@ -50,15 +51,17 @@ sub add_report {
 
             $self->add_file(
                 file_name       => $file,
-                coverage        => $coverage->{$file},
+                line_coverage   => $lines->{$file},
+                sub_coverage    => $subs->{$file},
                 git_repository  => $repository->{repository},
                 git_commit      => $repository->{commit},
                 git_prefix      => $repository->{prefix},
             );
         } else {
             $self->add_file(
-                file_name   => $file,
-                coverage    => $coverage->{$file},
+                file_name       => $file,
+                line_coverage   => $lines->{$file},
+                sub_coverage    => $subs->{$file},
             );
         }
     }
@@ -123,13 +126,20 @@ sub _make_item {
     my %item = (
         file_name       => $args->{file_name},
         display_name    => $args->{display_name} || $args->{file_name},
-        coverage        => $args->{coverage},
+        line_coverage   => $args->{line_coverage},
+        sub_coverage    => $args->{sub_coverage},
         git_repository  => $args->{git_repository},
         git_commit      => $args->{git_commit},
         git_prefix      => $args->{git_prefix},
     );
-    my $covered = grep $_, values %{$item{coverage}};
-    $item{percentage} = $covered / keys %{$item{coverage}};
+    my $line_covered = grep $_, values %{$item{line_coverage}};
+    $item{line_percentage} = $line_covered / keys %{$item{line_coverage}};
+    if (keys %{$item{sub_coverage}}) {
+        my $sub_covered = grep $_, values %{$item{sub_coverage}};
+        $item{sub_percentage} = $sub_covered / keys %{$item{sub_coverage}};
+    } else {
+        $item{sub_percentage} = 'NA';
+    }
     ($item{report_name} = $item{file_name}) =~ s{\W}{-}g;
     $item{report_name} .= '.html';
 
@@ -147,7 +157,7 @@ sub _render_file {
         $TEMPLATES{file},
         {
             display_name    => $item->{display_name},
-            coverage        => $item->{coverage},
+            line_coverage   => $item->{line_coverage},
             include         => \&_include,
             lines           => $lines,
             date            => $date,

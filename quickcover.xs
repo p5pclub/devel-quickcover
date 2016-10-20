@@ -104,6 +104,57 @@ static void qc_install(pTHX)
     GLOG(("qc_install:   qc_nextstate is [%p]", qc_nextstate));
 }
 
+#if PERL_VERSION >= 18 && PERL_VERSION < 22
+
+static void named_cv_name(pTHX_ SV* dest, CV* cv) {
+    HV* stash = CvSTASH(cv);
+    const char* name = stash ? HvNAME(stash) : NULL;
+
+    if (name) {
+        /* inspired by Perl_gv_fullname4 */
+        const STRLEN len = HvNAMELEN(stash);
+
+        sv_setpvn(dest, name, len);
+        if (HvNAMEUTF8(stash))
+            SvUTF8_on(dest);
+        else
+            SvUTF8_off(dest);
+	sv_catpvs(dest, "::");
+        sv_catsv(dest, sv_2mortal(newSVhek(CvNAME_HEK(cv))));
+    }
+}
+
+#endif
+
+static OP* qc_first_nextstate(pTHX) {
+    const PERL_CONTEXT* cx = &cxstack[cxstack_ix];
+
+    /* this should always be true, but just in case */
+    if (CxTYPE(cx) == CXt_SUB) {
+        CV* cv = cx->blk_sub.cv;
+        SV* dest = sv_newmortal();
+        GV* gv = CvGV(cv);
+
+        /* Create data structure if necessary. */
+        if (!cover) {
+            cover = cover_create();
+            GLOG(("qc_first_nextstate: created cover data [%p]", cover));
+        }
+
+        if (gv) { /* see the same condition in qc_peep */
+            gv_efullname3(dest, gv, NULL);
+            cover_sub_add_covered_sub(cover, GvFILE(gv), SvPV_nolen(dest), CopLINE(cCOPx(PL_op)), PL_phase);
+#if PERL_VERSION >= 18 && PERL_VERSION < 22
+        } else if (CvNAMED(cv)) {
+            named_cv_name(aTHX_ dest, cv);
+            cover_sub_add_covered_sub(cover, CvFILE(cv), SvPV_nolen(dest), CopLINE(cCOPx(PL_op)), PL_phase);
+#endif
+        }
+    }
+
+    return qc_nextstate(aTHX);
+}
+
 static OP* qc_nextstate(pTHX) {
     Perl_ppaddr_t orig_pp = PL_op->op_type == OP_NEXTSTATE ? nextstate_orig : dbstate_orig;
     OP* ret = orig_pp(aTHX);
@@ -150,9 +201,31 @@ static void qc_peep(pTHX_ OP *o)
          * PL_check[OP_NEXTSTATE] override, but guess what? Perl does
          * not call the check hook for OP_NEXTSTATE/DBSTATE
          */
-        if (PL_compcv && o == CvSTART(PL_compcv) && CvROOT(PL_compcv))
+        if (PL_compcv && o == CvSTART(PL_compcv) && CvROOT(PL_compcv)) {
+            /* the first nextstate op marks the sub as covered */
+            OP* f;
+            for (f = o; f; f = f->op_next) {
+                if (f->op_type == OP_NEXTSTATE || f->op_type == OP_DBSTATE) {
+                    f->op_ppaddr = qc_first_nextstate;
+                    break;
+                }
+            }
+            if (f) {
+                GV* gv = CvGV(PL_compcv);
+                SV* dest = sv_newmortal();
+
+                if (gv) { /* for example lexical subs don't have a GV on Perl < 5.22 */
+                    gv_efullname3(dest, gv, NULL);
+                    cover_sub_add_sub(cover, GvFILE(gv), SvPV_nolen(dest), CopLINE(cCOPx(f)));
+#if PERL_VERSION >= 18 && PERL_VERSION < 22
+                } else if (CvNAMED(PL_compcv)) {
+                    named_cv_name(aTHX_ dest, PL_compcv);
+                    cover_sub_add_sub(cover, CvFILE(PL_compcv), SvPV_nolen(dest), CopLINE(cCOPx(f)));
+#endif
+                }
+            }
             scan_optree(aTHX_ cover, CvROOT(PL_compcv));
-        else if (o == PL_main_start && PL_main_root)
+        } else if (o == PL_main_start && PL_main_root)
             scan_optree(aTHX_ cover, PL_main_root);
         else if (o == PL_eval_start && PL_eval_root)
             scan_optree(aTHX_ cover, PL_eval_root);

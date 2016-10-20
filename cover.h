@@ -15,6 +15,25 @@
 #include  "ppport.h"
 
 /*
+ * We will have one of these per sub, stored in a singly linked list.
+ */
+typedef struct SubCoverNode {
+  char* sub;                  /* sub name */
+  int line;                   /* sub first line */
+  int phase;                  /* covered in phase */
+  U32 hash;                   /* hash of the sub_name/line */
+} SubCoverNode;
+
+/*
+ * A placeholder for the linked list with sub coverage information.
+ */
+typedef struct SubCoverList {
+  SubCoverNode** list;
+  unsigned int used;
+  unsigned int size;
+} SubCoverList;
+
+/*
  * We will have one of these per file, stored in a singly linked list.
  */
 typedef struct CoverNode {
@@ -24,6 +43,7 @@ typedef struct CoverNode {
   unsigned short alen;        /* current length of lines array */
   unsigned short bmax;        /* value of largest bit (line) seen so far */
   unsigned short bcnt;        /* number of different bits (lines) seen so far */
+  SubCoverList subs;          /* subroutines in this file */
 } CoverNode;
 
 /*
@@ -62,5 +82,10 @@ void cover_add_line(CoverList* cover, const char* file, int line);
  */
 void cover_dump(CoverList* cover, FILE* fp);
 
+/*
+ * Same as the above, but for SubCoverList*
+ */
+void cover_sub_add_covered_sub(CoverList* cover, const char* file, const char* name, U32 line, int phase);
+void cover_sub_add_sub(CoverList* cover, const char* file, const char* name, U32 line);
 
 #endif

@@ -33,6 +33,7 @@ sub test_fixture {
 }
 
 for my $file (glob "$FIXTURES/*.pl") {
+    next if $file eq "$FIXTURES/cover-05.pl" && $] lt '5.018000';
     test_fixture($file);
 }
 

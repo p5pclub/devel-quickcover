@@ -28,6 +28,7 @@ fixtures/cover-01.pl
 fixtures/cover-02.pl
 fixtures/cover-03.pl
 fixtures/cover-04.pl
+fixtures/cover-05.pl
 
 share/file.tmpl
 share/header.tmpl

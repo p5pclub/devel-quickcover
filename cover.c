@@ -55,6 +55,9 @@ static void cover_node_ensure(CoverNode* node, int line);
 /* Add a node to the list of files */
 static CoverNode* add_get_node(CoverList* cover, const char* file);
 
+/* Destroy list of covered subroutines */
+static void cover_sub_destroy(SubCoverList* cover);
+
 CoverList* cover_create(void) {
   CoverList* cover;
   GMEM_NEW(cover, CoverList*, sizeof(CoverList));
@@ -84,6 +87,8 @@ void cover_destroy(CoverList* cover) {
     GMEM_DELSTR(tmp->file, -1);
     /* GLOG(("Destroying array [%p] with %d elements", tmp->lines, tmp->alen)); */
     GMEM_DELARR(tmp->lines , unsigned char*,   tmp->alen, sizeof(unsigned char));
+    cover_sub_destroy(&tmp->subs);
+
     /* GLOG(("Destroying node [%p]", tmp)); */
     GMEM_DEL(tmp, CoverNode*, sizeof(CoverNode));
     cover->list[i] = 0;
@@ -132,7 +137,8 @@ void cover_add_line(CoverList* cover, const char* file, int line) {
 
 void cover_dump(CoverList* cover, FILE* fp) {
   CoverNode* node = 0;
-  int ncount = 0, i = 0;
+  SubCoverNode* sub_node = 0;
+  int ncount = 0, i = 0, scount = 0;
 
   assert(cover);
 
@@ -183,7 +189,26 @@ void cover_dump(CoverList* cover, FILE* fp) {
     OUTPUT_COMPILER_PHASE("END"     , ==, PERL_PHASE_END     , 1);
     OUTPUT_COMPILER_PHASE("DESTRUCT", ==, PERL_PHASE_DESTRUCT, 0);
 
-    fprintf(fp, "}"); /* close the `phases` object */
+    fprintf(fp, "},\"subs\":{"); /* close the `phases` object */
+
+    for (j = 0, scount = 0; j < node->subs.size; j++) {
+      const char* phase;
+      sub_node = node->subs.list[j];
+      if (!sub_node) {
+        continue;
+      }
+
+      if (scount++) {
+        fprintf(fp, ",\n");
+      }
+      phase = sub_node->phase == PERL_PHASE_CONSTRUCT ? "" :
+              sub_node->phase == PERL_PHASE_START ? "BEGIN" :
+                                 PL_phase_names[sub_node->phase];
+      fprintf(fp, "\"%s,%d\":\"%s\"",
+              sub_node->sub, sub_node->line, phase);
+    }
+
+    fprintf(fp, "}"); /* close the `subs' object */
     fprintf(fp, "}"); /* close the `list of files` object */
   }
   fprintf(fp, "}"); /* close the `files` object */
@@ -282,9 +307,136 @@ static CoverNode* add_get_node(CoverList* cover, const char* file) {
   node->lines  = NULL;
   node->hash   = hash;
   node->alen   = node->bcnt = node->bmax = 0;
+  node->subs.list = NULL;
+  node->subs.used = 0;
+  node->subs.size = 0;
 
   ++cover->used;
   cover->list[pos] = node;
+
+  /* GLOG(("Adding set for [%s]", node->file)); */
+  return node;
+}
+
+/* Add a node to the list of subs */
+static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, const char* name, U32 line);
+
+static void cover_sub_destroy(SubCoverList* cover) {
+  int i;
+  SubCoverNode* node = 0;
+
+  assert(cover);
+
+  for (i = 0; i < cover->size ; i++) {
+    node = cover->list[i];
+    if (!node) {
+      continue;
+    }
+
+    SubCoverNode* tmp = node;
+    GMEM_DELSTR(tmp->sub, -1);
+    GMEM_DEL(tmp, SubCoverNode*, sizeof(SubCoverNode));
+    cover->list[i] = 0;
+  }
+
+  GLOG(("Destroying cover [%p]. Max run %d. Used: %d", cover, max_collisions, cover->used));
+  GMEM_DELARR(cover->list, SubCoverNode**, cover->size, sizeof(SubCoverNode*));
+}
+
+void cover_sub_add_covered_sub(CoverList* cover, const char* file, const char* name, U32 line, int phase) {
+  SubCoverNode* node = 0;
+
+  assert(cover);
+  node = sub_add_get_node(cover, file, name, line);
+
+  assert(node);
+
+  if (node->phase == PERL_PHASE_CONSTRUCT)
+    node->phase = phase;
+}
+
+void cover_sub_add_sub(CoverList* cover, const char* file, const char* name, U32 line) {
+  SubCoverNode* node = 0;
+
+  assert(cover);
+  node = sub_add_get_node(cover, file, name, line);
+
+  assert(node);
+}
+
+static U32 sub_find_pos(SubCoverNode** where, U32 hash, const char* name, int size) {
+  U32 pos = hash % size;
+
+#ifdef GLOG_SHOW
+  unsigned int run = 0;
+#endif
+
+  while (where[pos] &&
+         (hash != where[pos]->hash ||
+          strcmp(name, where[pos]->sub) != 0)) {
+    pos = (pos + 1) % size;
+
+#ifdef GLOG_SHOW
+    ++run;
+#endif
+  }
+
+#ifdef GLOG_SHOW
+  if (run > max_collisions) {
+    max_collisions = run;
+  }
+#endif
+
+  return pos;
+}
+
+static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, const char* name, U32 line) {
+  CoverNode* parent = add_get_node(cover, file);
+  SubCoverList* sub_cover = &parent->subs;
+  U32 hash, pos, i;
+  SubCoverNode* node = NULL;
+  SubCoverNode** new_list = NULL;
+  ssize_t len = strlen(name);
+
+  /* TODO: comment these magic numbers */
+  /* TODO: move this enlargement code to a separate function */
+  if (sub_cover->size == 0) {
+    sub_cover->size = COVER_LIST_INITIAL_SIZE;
+    GMEM_NEWARR(sub_cover->list, SubCoverNode**, COVER_LIST_INITIAL_SIZE, sizeof(SubCoverNode*));
+  }
+  if (3 * sub_cover->used > 2 * sub_cover->size) {
+    GMEM_NEWARR(new_list, SubCoverNode**, sub_cover->size * 2, sizeof(SubCoverNode*));
+    for (i = 0; i < sub_cover->size; i++) {
+      if (!sub_cover->list[i]) {
+        continue;
+      }
+      pos = sub_find_pos(new_list, sub_cover->list[i]->hash, sub_cover->list[i]->sub, sub_cover->size * 2);
+      new_list[pos] = sub_cover->list[i];
+    }
+
+    GMEM_DELARR(sub_cover->list, SubCoverNode**, sub_cover->size, sizeof(SubCoverNode*));
+    sub_cover->list = new_list;
+    sub_cover->size *= 2;
+  }
+
+  /* Compute hash value for file name using Perl's hash function */
+  PERL_HASH(hash, name, len);
+  hash += line * 6449;
+
+  pos = sub_find_pos(sub_cover->list, hash, name, sub_cover->size);
+  if (sub_cover->list[pos]) {
+    return sub_cover->list[pos];
+  }
+
+  GMEM_NEW(node, SubCoverNode*, sizeof(CoverNode));
+  int l = 0;
+  GMEM_NEWSTR(node->sub, name, -1, l);
+  node->line   = line;
+  node->hash   = hash;
+  node->phase  = PERL_PHASE_CONSTRUCT;
+
+  ++sub_cover->used;
+  sub_cover->list[pos] = node;
 
   /* GLOG(("Adding set for [%s]", node->file)); */
   return node;
