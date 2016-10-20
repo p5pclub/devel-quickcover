@@ -105,11 +105,13 @@ static void qc_install(pTHX)
 }
 
 static OP* qc_nextstate(pTHX) {
-    OP* ret = PL_op->op_type == OP_NEXTSTATE ? nextstate_orig(aTHX) : dbstate_orig(aTHX);
+    Perl_ppaddr_t orig_pp = PL_op->op_type == OP_NEXTSTATE ? nextstate_orig : dbstate_orig;
+    OP* ret = orig_pp(aTHX);
 
     if (enabled) {
         /* Restore original nextstate op for this node. */
-        PL_op->op_ppaddr = nextstate_orig;
+        if (PL_op->op_ppaddr == qc_nextstate)
+            PL_op->op_ppaddr = orig_pp;
 
         /* Create data structure if necessary. */
         if (!cover) {
@@ -232,7 +234,6 @@ static void save_stuff(pTHX)
 {
     save_output_directory(aTHX);
     save_metadata(aTHX);
-
 }
 
 static void save_output_directory(pTHX)
