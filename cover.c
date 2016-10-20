@@ -94,7 +94,7 @@ void cover_destroy(CoverList* cover) {
   GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
-void cover_add_covered(CoverList* cover, const char* file, int line, int phase) {
+void cover_add_covered_line(CoverList* cover, const char* file, int line, int phase) {
   CoverNode* node = 0;
 
   if (file[0] == '(')

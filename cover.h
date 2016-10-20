@@ -49,7 +49,7 @@ void cover_destroy(CoverList* cover);
  * Add an executed file:line to the CoverList; will create CoverNode
  * for file, if it doesn't already exist.
  */
-void cover_add_covered(CoverList* cover, const char* file, int line, int phase);
+void cover_add_covered_line(CoverList* cover, const char* file, int line, int phase);
 
 /*
  * Add a file:line to the CoverList; will create CoverNode for file, if it

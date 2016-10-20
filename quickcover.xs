@@ -118,7 +118,7 @@ static OP* qc_nextstate(pTHX) {
         }
 
         /* Now do our own nefarious tracking... */
-        cover_add_covered(cover, CopFILE(PL_curcop), CopLINE(PL_curcop), PL_phase);
+        cover_add_covered_line(cover, CopFILE(PL_curcop), CopLINE(PL_curcop), PL_phase);
     }
 
     return ret;
