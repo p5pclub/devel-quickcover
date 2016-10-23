@@ -22,7 +22,7 @@ USE:
 
 DESCRIPTION:
 
-qc-aggregate.pl aggregates all Devel::QuickCover files $QC_PATH/$QC_PREFIXES_\*.$QC_EXTENSIONS
+qc-aggregate.pl aggregates all Devel::QuickCover files $QC_PATH/${QC_PREFIXES}_\*.$QC_EXTENSIONS
 into a Sereal database that can be converted into Devel::Cover output.
 The data is written to $QC_DATABASE. If this file exists, the new data
 is added to it.
