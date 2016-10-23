@@ -69,13 +69,13 @@ void cover_destroy(CoverList* cover);
  * Add an executed file:line to the CoverList; will create CoverNode
  * for file, if it doesn't already exist.
  */
-void cover_add_covered_line(CoverList* cover, const char* file, int line, int phase);
+void cover_add_covered_line(CoverList* cover, const char* file, U32 file_hash, int line, int phase);
 
 /*
  * Add a file:line to the CoverList; will create CoverNode for file, if it
  * doesn't already exist.
  */
-void cover_add_line(CoverList* cover, const char* file, int line);
+void cover_add_line(CoverList* cover, const char* file, U32 file_hash, int line);
 
 /*
  * Dump all data to a given file stream.
@@ -85,7 +85,7 @@ void cover_dump(CoverList* cover, FILE* fp);
 /*
  * Same as the above, but for SubCoverList*
  */
-void cover_sub_add_covered_sub(CoverList* cover, const char* file, const char* name, U32 line, int phase);
-void cover_sub_add_sub(CoverList* cover, const char* file, const char* name, U32 line);
+void cover_sub_add_covered_sub(CoverList* cover, const char* file, U32 file_hash, const char* name, U32 name_hash, U32 line, int phase);
+void cover_sub_add_sub(CoverList* cover, const char* file, U32 file_hash, const char* name, U32 name_hash, U32 line);
 
 #endif

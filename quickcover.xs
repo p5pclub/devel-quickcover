@@ -126,6 +126,36 @@ static void named_cv_name(pTHX_ SV* dest, CV* cv) {
 
 #endif
 
+static void add_sub_helper(pTHX_ CoverList* cover, const char* file, const char* name, U32 line) {
+    U32 file_hash, name_hash;
+
+    PERL_HASH(file_hash, file, strlen(file));
+    PERL_HASH(name_hash, name, strlen(name));
+    cover_sub_add_sub(cover, file, file_hash, name, name_hash, line);
+}
+
+static void add_covered_sub_helper(pTHX_ CoverList* cover, const char* file, const char* name, U32 line, int phase) {
+    U32 file_hash, name_hash;
+
+    PERL_HASH(file_hash, file, strlen(file));
+    PERL_HASH(name_hash, name, strlen(name));
+    cover_sub_add_covered_sub(cover, file, file_hash, name, name_hash, line, phase);
+}
+
+static void add_line_helper(pTHX_ CoverList* cover, const char* file, U32 line) {
+    U32 file_hash;
+
+    PERL_HASH(file_hash, file, strlen(file));
+    cover_add_line(cover, file, file_hash, line);
+}
+
+static void add_covered_line_helper(pTHX_ CoverList* cover, const char* file, U32 line, int phase) {
+    U32 file_hash;
+
+    PERL_HASH(file_hash, file, strlen(file));
+    cover_add_covered_line(cover, file, file_hash, line, phase);
+}
+
 static OP* qc_first_nextstate(pTHX) {
     const PERL_CONTEXT* cx = &cxstack[cxstack_ix];
 
@@ -143,11 +173,11 @@ static OP* qc_first_nextstate(pTHX) {
 
         if (gv) { /* see the same condition in qc_peep */
             gv_efullname3(dest, gv, NULL);
-            cover_sub_add_covered_sub(cover, GvFILE(gv), SvPV_nolen(dest), CopLINE(cCOPx(PL_op)), PL_phase);
+            add_covered_sub_helper(aTHX_ cover, GvFILE(gv), SvPV_nolen(dest), CopLINE(cCOPx(PL_op)), PL_phase);
 #if PERL_VERSION >= 18 && PERL_VERSION < 22
         } else if (CvNAMED(cv)) {
             named_cv_name(aTHX_ dest, cv);
-            cover_sub_add_covered_sub(cover, CvFILE(cv), SvPV_nolen(dest), CopLINE(cCOPx(PL_op)), PL_phase);
+            add_covered_sub_helper(aTHX_ cover, CvFILE(cv), SvPV_nolen(dest), CopLINE(cCOPx(PL_op)), PL_phase);
 #endif
         }
     }
@@ -171,7 +201,7 @@ static OP* qc_nextstate(pTHX) {
         }
 
         /* Now do our own nefarious tracking... */
-        cover_add_covered_line(cover, CopFILE(PL_curcop), CopLINE(PL_curcop), PL_phase);
+        add_covered_line_helper(aTHX_ cover, CopFILE(PL_curcop), CopLINE(PL_curcop), PL_phase);
     }
 
     return ret;
@@ -216,11 +246,11 @@ static void qc_peep(pTHX_ OP *o)
 
                 if (gv) { /* for example lexical subs don't have a GV on Perl < 5.22 */
                     gv_efullname3(dest, gv, NULL);
-                    cover_sub_add_sub(cover, GvFILE(gv), SvPV_nolen(dest), CopLINE(cCOPx(f)));
+                    add_sub_helper(aTHX_ cover, GvFILE(gv), SvPV_nolen(dest), CopLINE(cCOPx(f)));
 #if PERL_VERSION >= 18 && PERL_VERSION < 22
                 } else if (CvNAMED(PL_compcv)) {
                     named_cv_name(aTHX_ dest, PL_compcv);
-                    cover_sub_add_sub(cover, CvFILE(PL_compcv), SvPV_nolen(dest), CopLINE(cCOPx(f)));
+                    add_sub_helper(aTHX_ cover, CvFILE(PL_compcv), SvPV_nolen(dest), CopLINE(cCOPx(f)));
 #endif
                 }
             }
@@ -368,7 +398,7 @@ static void scan_optree(pTHX_ CoverList* cover, OP* op)
   }
 
   if (op->op_type == OP_NEXTSTATE || op->op_type == OP_DBSTATE)
-    cover_add_line(cover, CopFILE(cCOPx(op)), CopLINE(cCOPx(op)));
+    add_line_helper(aTHX_ cover, CopFILE(cCOPx(op)), CopLINE(cCOPx(op)));
 }
 
 

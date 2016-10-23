@@ -53,7 +53,7 @@ static unsigned int max_collisions = 0;
 static void cover_node_ensure(CoverNode* node, int line);
 
 /* Add a node to the list of files */
-static CoverNode* add_get_node(CoverList* cover, const char* file);
+static CoverNode* add_get_node(CoverList* cover, const char* file, U32 file_hash);
 
 /* Destroy list of covered subroutines */
 static void cover_sub_destroy(SubCoverList* cover);
@@ -99,14 +99,14 @@ void cover_destroy(CoverList* cover) {
   GMEM_DEL(cover, CoverList*, sizeof(CoverList));
 }
 
-void cover_add_covered_line(CoverList* cover, const char* file, int line, int phase) {
+void cover_add_covered_line(CoverList* cover, const char* file, U32 file_hash, int line, int phase) {
   CoverNode* node = 0;
 
   if (file[0] == '(')
     return;
 
   assert(cover);
-  node = add_get_node(cover, file);
+  node = add_get_node(cover, file, file_hash);
 
   assert(node);
   cover_node_ensure(node, line);
@@ -120,14 +120,14 @@ void cover_add_covered_line(CoverList* cover, const char* file, int line, int ph
   }
 }
 
-void cover_add_line(CoverList* cover, const char* file, int line) {
+void cover_add_line(CoverList* cover, const char* file, U32 file_hash, int line) {
   CoverNode* node = 0;
 
   if (file[0] == '(')
     return;
 
   assert(cover);
-  node = add_get_node(cover, file);
+  node = add_get_node(cover, file, file_hash);
 
   assert(node);
   cover_node_ensure(node, line);
@@ -269,11 +269,10 @@ static U32 find_pos(CoverNode** where, U32 hash, const char* file, int size) {
   return pos;
 }
 
-static CoverNode* add_get_node(CoverList* cover, const char* file) {
-  U32 hash, pos, i;
+static CoverNode* add_get_node(CoverList* cover, const char* file, U32 file_hash) {
+  U32 pos, i;
   CoverNode* node = NULL;
   CoverNode** new_list = NULL;
-  ssize_t len = strlen(file);
 
   /* TODO: comment these magic numbers */
   /* TODO: move this enlargement code to a separate function */
@@ -292,10 +291,7 @@ static CoverNode* add_get_node(CoverList* cover, const char* file) {
     cover->size *= 2;
   }
 
-  /* Compute hash value for file name using Perl's hash function */
-  PERL_HASH(hash, file, len);
-
-  pos = find_pos(cover->list, hash, file, cover->size);
+  pos = find_pos(cover->list, file_hash, file, cover->size);
   if (cover->list[pos]) {
     return cover->list[pos];
   }
@@ -305,7 +301,7 @@ static CoverNode* add_get_node(CoverList* cover, const char* file) {
   int l = 0;
   GMEM_NEWSTR(node->file, file, -1, l);
   node->lines  = NULL;
-  node->hash   = hash;
+  node->hash   = file_hash;
   node->alen   = node->bcnt = node->bmax = 0;
   node->subs.list = NULL;
   node->subs.used = 0;
@@ -319,7 +315,7 @@ static CoverNode* add_get_node(CoverList* cover, const char* file) {
 }
 
 /* Add a node to the list of subs */
-static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, const char* name, U32 line);
+static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, U32 file_hash, const char* name, U32 name_hash, U32 line);
 
 static void cover_sub_destroy(SubCoverList* cover) {
   int i;
@@ -343,11 +339,11 @@ static void cover_sub_destroy(SubCoverList* cover) {
   GMEM_DELARR(cover->list, SubCoverNode**, cover->size, sizeof(SubCoverNode*));
 }
 
-void cover_sub_add_covered_sub(CoverList* cover, const char* file, const char* name, U32 line, int phase) {
+void cover_sub_add_covered_sub(CoverList* cover, const char* file, U32 file_hash, const char* name, U32 name_hash, U32 line, int phase) {
   SubCoverNode* node = 0;
 
   assert(cover);
-  node = sub_add_get_node(cover, file, name, line);
+  node = sub_add_get_node(cover, file, file_hash, name, name_hash, line);
 
   assert(node);
 
@@ -355,11 +351,11 @@ void cover_sub_add_covered_sub(CoverList* cover, const char* file, const char* n
     node->phase = phase;
 }
 
-void cover_sub_add_sub(CoverList* cover, const char* file, const char* name, U32 line) {
+void cover_sub_add_sub(CoverList* cover, const char* file, U32 file_hash, const char* name, U32 name_hash, U32 line) {
   SubCoverNode* node = 0;
 
   assert(cover);
-  node = sub_add_get_node(cover, file, name, line);
+  node = sub_add_get_node(cover, file, file_hash, name, name_hash, line);
 
   assert(node);
 }
@@ -390,10 +386,10 @@ static U32 sub_find_pos(SubCoverNode** where, U32 hash, const char* name, int si
   return pos;
 }
 
-static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, const char* name, U32 line) {
-  CoverNode* parent = add_get_node(cover, file);
+static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, U32 file_hash, const char* name, U32 name_hash, U32 line) {
+  CoverNode* parent = add_get_node(cover, file, file_hash);
   SubCoverList* sub_cover = &parent->subs;
-  U32 hash, pos, i;
+  U32 pos, i;
   SubCoverNode* node = NULL;
   SubCoverNode** new_list = NULL;
   ssize_t len = strlen(name);
@@ -419,11 +415,9 @@ static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, const 
     sub_cover->size *= 2;
   }
 
-  /* Compute hash value for file name using Perl's hash function */
-  PERL_HASH(hash, name, len);
-  hash += line * 6449;
+  name_hash += line * 6449;
 
-  pos = sub_find_pos(sub_cover->list, hash, name, sub_cover->size);
+  pos = sub_find_pos(sub_cover->list, name_hash, name, sub_cover->size);
   if (sub_cover->list[pos]) {
     return sub_cover->list[pos];
   }
@@ -432,7 +426,7 @@ static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, const 
   int l = 0;
   GMEM_NEWSTR(node->sub, name, -1, l);
   node->line   = line;
-  node->hash   = hash;
+  node->hash   = name_hash;
   node->phase  = PERL_PHASE_CONSTRUCT;
 
   ++sub_cover->used;
