@@ -4,3 +4,4 @@ html/.*
 qc\.dat
 .*\.tar\.gz
 .*\.zip
+.*\.swp
