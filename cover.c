@@ -392,7 +392,6 @@ static SubCoverNode* sub_add_get_node(CoverList* cover, const char* file, U32 fi
   U32 pos, i;
   SubCoverNode* node = NULL;
   SubCoverNode** new_list = NULL;
-  ssize_t len = strlen(name);
 
   /* TODO: comment these magic numbers */
   /* TODO: move this enlargement code to a separate function */
