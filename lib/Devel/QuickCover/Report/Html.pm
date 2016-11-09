@@ -133,7 +133,11 @@ sub _make_item {
         git_prefix      => $args->{git_prefix},
     );
     my $line_covered = grep $_, values %{$item{line_coverage}};
-    $item{line_percentage} = $line_covered / keys %{$item{line_coverage}};
+    if (keys %{$item{line_coverage}}) {
+        $item{line_percentage} = $line_covered / keys %{$item{line_coverage}};
+    } else {
+        $item{line_percentage} = 'NA';
+    }
     if (keys %{$item{sub_coverage}}) {
         my $sub_covered = grep $_, values %{$item{sub_coverage}};
         $item{sub_percentage} = $sub_covered / keys %{$item{sub_coverage}};
