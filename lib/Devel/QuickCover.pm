@@ -5,7 +5,7 @@ use warnings;
 use Carp 'croak';
 use XSLoader;
 
-our $VERSION = '0.900000';
+our $VERSION = '0.900010';
 
 XSLoader::load( 'Devel::QuickCover', $VERSION );
 
