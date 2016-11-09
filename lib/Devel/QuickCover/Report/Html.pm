@@ -232,6 +232,7 @@ sub _include {
 
 sub _format_ratio {
     my ($ratio) = @_;
+    return $ratio if $ratio eq 'NA';
 
     my $perc = $ratio * 100;
     if ($perc >= 0.01) {
@@ -245,6 +246,7 @@ sub _format_ratio {
 
 sub _color_code {
     my ($ratio) = @_;
+    return $ratio if $ratio eq 'NA';
 
     if ($ratio < .75) {
         return 'coverage-red';
