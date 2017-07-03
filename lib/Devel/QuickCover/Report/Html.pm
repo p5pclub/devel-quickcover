@@ -170,6 +170,7 @@ sub _render_file {
         $item->{report_name},
         $self->{compress},
     );
+    return 1;
 }
 
 sub _fetch_source {
