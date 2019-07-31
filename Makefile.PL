@@ -13,7 +13,7 @@ WriteMakefile(
     PREREQ_PM      => {
         'perl'                  => '5.014',
         'XSLoader'              => 0,
-        'JSON::XS'              => 0,
+        'JSON::MaybeXS'         => 0,
         'Sereal'                => 0,
         'IO::Compress::Gzip'    => 0,
         'IPC::Open2'            => 0,
