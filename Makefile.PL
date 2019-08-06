@@ -22,13 +22,15 @@ WriteMakefile(
         'File::ShareDir'        => 0,
         'File::Copy'            => 0,
         'File::Spec'            => 0,
+        'File::Spec::Functions' => 0,
         'Path::Tiny'            => 0,
+        'Getopt::Long'          => 0,
+        'POSIX'                 => 0,
     },
     TEST_REQUIRES  => {
         'Test::More'            => 0,
         'Test::Builder::Module' => 0,
         'File::Temp'            => 0,
-        'Path::Tiny'            => 0,
         'Data::Dumper'          => 0,
     },
     CONFIGURE_REQUIRES => {
