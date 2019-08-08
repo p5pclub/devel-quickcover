@@ -5,9 +5,6 @@
 #include <string.h>
 #include <time.h>
 
-#define PERL_NO_GET_CONTEXT     /* we want efficiency */
-#include "EXTERN.h"
-
 #include "glog.h"
 #include "gmem.h"
 #include "cover.h"
